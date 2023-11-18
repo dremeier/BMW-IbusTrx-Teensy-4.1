@@ -1,0 +1,25 @@
+{
+	"folders": [
+		{
+			"path": "../teensy4.1 Ibus -umbau"
+		},
+		{
+			"path": "../../../../../../share/Elektronik/Elektronik_Projekte_Daten/I-Bus/arduino-ibustrx-master"
+		},
+		{
+			"name": "Teensy_IbusTrx_versuch",
+			"path": "."
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"*.tcc": "cpp",
+			"exception": "cpp",
+			"memory_resource": "cpp",
+			"iosfwd": "cpp",
+			"new": "cpp",
+			"ostream": "cpp",
+			"streambuf": "cpp"
+		}
+	}
+}
