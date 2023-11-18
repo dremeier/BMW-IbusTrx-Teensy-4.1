@@ -56,9 +56,9 @@ void loop()
     unsigned int source = message.source();
     unsigned int destination = message.destination();
 
-    // Funkschlüssel auf und zu
-    if ((source == 0x00) && (destination == 0xBF) && (message.b(0) == 0x72))
-    {             // 00 04 BF 72 xx 
+    // Funkschlüssel auf und zu // 00 04 BF 72 xx 
+    if ((source == M_GM5) && (destination == M_ALL) && (message.b(0) == 0x72))
+    {             
       if (message.b(1) == 0x22) {
         ibusTrx.writeTxt("einsteigen Cordula");
       }
@@ -78,8 +78,8 @@ void loop()
       ibusTrx.writeTxt("einsteigen Andre");
     }  */
 
-    // Schlüssel im Schloß
-    if ((source == 0x44) && (destination == 0xBF) && (message.b(0) == 0x74))
+    // Schlüssel im Schloß // 44 05 bf 74 xx xx
+    if ((source == M_EWS) && (destination == M_ALL) && (message.b(0) == 0x74))
     {
       if (message.b(1) == 0x05)                                     // 44 05 bf 74 05 xx    Motor aus
       {               
@@ -89,7 +89,7 @@ void loop()
         }
         if (message.b(2) == 0x05) 
         {
-          ibusTrx.writeTxt("bis bald Andre");                        // schlüssel stellung 1 -> 0, Corula
+          ibusTrx.writeTxt("bis bald Andre");                        // schlüssel stellung 1 -> 0, Andre
         }
       // goto Heimleuchten: LDR auslesen und bei Dunkelheit Licht einschalten
       }
@@ -111,9 +111,77 @@ void loop()
     }
 
 
+    // wenn tippblinken true dann:
+    // Blinker: Wenn Blinkerpfeil im IKE links: D0 07 BF 5B 20 00 04 00 17 oder Blinkerpfeil im IKE rechts:  D0 07 BF 5B 40 00 04 00 77
+    // D0 07 BF 5B 40 00 04 00 77
+    //              |  |  |  |  |
+    //              |  |  |  |  Checksum
+    //              |  |  |Blinkstatus ist immer 04 , databytes[3]
+    //              |  |nil
+    //              |Blinkbyte kann sein: links-> 20, 21, 23, 27, 2B, 33, 3B, rechts-> 40, 41, 43, 47, 4B, 53, 5B
+    if (Tippblinken == 1) 
+    {           
+      if ((source == M_LCM) && (destination == M_ALL) && (message.b(0) == 0x5B))      // Abfrage des Blinkerpfeils mit verschiedenen Lichtbedingungen
+      {   
+        if (message.b(3) == 0x04) 
+        {  
+          
+          debugSerial.print("BlinkerPfeil li oder re ");
+          
+          switch (message.b(1)) 
+          {
+            case 0x20:
+            case 0x21:
+            case 0x23:
+            case 0x27:
+            case 0x2B:
+            case 0x33:
+            case 0x3B:
+              BlinkcountLi++;
+              debugSerial.println(BlinkcountLi);
+              if (BlinkcountLi < 2) 
+              {
+                turn=1; // Blinker links ein/LICHT ein
+              }
+              break;
 
-    // trigger based on a message from the steering wheel controls
-    if (source == 0xF0) 
+            case 0x40:
+            case 0x41:
+            case 0x43:
+            case 0x47:
+            case 0x4B:
+            case 0x53:
+            case 0x5B:
+              BlinkcountRe++;
+              debugSerial.println(BlinkcountRe);
+              if (BlinkcountRe < 2) 
+              {
+                turn=2; // Blinker rechts ein/LICHT ein
+              } 
+              break;
+
+            default:
+              // Nichts tun für unbekannte Werte
+            break;
+          }
+        } 
+        else if (message.b(3) == 0x00) 
+        {     // D0 07 BF 5B 40 00 00 00 73 , byte 3 = 00 =! Indicator_sync       // D0 07 BF 5B 00 = Byte 1=  0x00 = All_Off
+          BlinkcountLi = 0;
+          BlinkcountRe = 0;
+          debugSerial.println("Reset Counts");
+        }
+
+        
+
+      }
+
+
+    }  
+
+
+    // Beispiel: trigger based on a message from the steering wheel controls
+    if (source == M_BMB) 
     {
       // if "Push right" is pressed: simulate a press of the dome light button
       if (message.b(1) == 0x05) 
@@ -160,6 +228,67 @@ void loop()
 
 
   // ############################# weiter im Loop ##############
+  // Blinker selection
+  if (turn == 1 || turn == 2) 
+  {
+    ibusTrx.write(LCMdimmReq);                                                // Frage den Dimm-Wert im IKE Cluster ab 3F 03 D0 0B (E7) 
+    debugSerial.println("send LCM Dimmer Request");
+    /*int Zaehler = 0;
+    while (Zaehler <= 10) {                                                  //100 Notausstieg wenn nach 100 Bytes keine Diagnose-Antwort vom LCM kommt//// 3F LL 00 0C 10 05 3F CK // 24.7% = 63/255 = 3F/FF
+      Zaehler++;
+      if ((source == 0xA0) && (length == 0xC1) && (destination == 0xC0)){     // Antwort auf den Request des LCM-Status (A0 C1 C0 00 20 00 00 00 00 00 A0 00 00 88 14 84 E4 + FF 00 //0A 00 00 00 00 00 00 00 00 00 00 FF FF FE)
+        for (int i = 0; i < length; ++i) {                                    // diesen ibus code in ein array packen und nach dem blinker-code zurüsckschicken
+            receivedMessage[i] = packet[i];
+        }
+        receivedMessage[0] = 0x0C;
+        byte checksum = 0;
+        for (int i = 0; i < length - 1; ++i) {
+          checksum ^= receivedMessage[i];
+        }
+        receivedMessage[length - 1] = checksum;
+      }
+      return; 
+    } */
+    
+  }
+
+  switch (turn) 
+  {
+    case 1:
+      debugSerial.println("Links Blinker ein");
+      ibusTrx.write(BlinkerLi);
+      //ibusTrx.write(receivedMessage);
+      turn = 0;
+        
+      //delay(1500);
+      
+      //ibusTrx.write(receivedMessage);
+    break;
+
+    case 2:
+      debugSerial.println("Rechts Blinker ein");
+      ibusTrx.write(BlinkerRe);                                 // 3F 0C D0 0C 00 00 40 00 00 00 00 00 00 AF
+      //ibusTrx.write(receivedMessage);
+      turn = 0;
+      //delay(1500);
+      //ibusTrx.write(BlinkerAus);
+      //ibusTrx.write(receivedMessage);
+    break;  
+
+    default:
+      if ((BlinkcountLi > 2) || (BlinkcountRe > 2)) // wenn mehr als 3 mal geblinkt wurde
+      {
+        BlinkcountLi=0;       // 
+        BlinkcountRe=0;
+        ibusTrx.write(BlinkerAus);
+        debugSerial.println("Blinker AUS");
+      } 
+    break;
+  }
+
+
+
+
   // Text im IKE löschen
   if (IKEclear)                               // bereit um den Text im IKE zu löschen
   {                                  
@@ -175,7 +304,7 @@ void loop()
 // Globale Funktion außerhalb der Klasse
 void ClearToSend() {
   //debugSerial.print(" Interrupt ");
-  ibusTrx.available(); // Versuch, eine Nachricht zu senden, wenn Interrupt ausgelöst wird
+  //ibusTrx.available(); // Versuch, eine Nachricht zu senden, wenn Interrupt ausgelöst wird
 }
 
 

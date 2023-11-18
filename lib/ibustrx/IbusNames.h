@@ -2,16 +2,19 @@
 #define IbusNames_h
 
 // IBUS module ID's
-static const uint8_t M_GM5 = 0x00; // GM5: body control module
-static const uint8_t M_DIA = 0x3F; // DIA: diagnostic computer
-static const uint8_t M_EWS = 0x44; // EWS: immobilizer
-static const uint8_t M_MFL = 0x50; // MFL: steering wheel controls
+static const uint8_t M_GM5 = 0x00;  // GM5: body control module
+static const uint8_t M_DIA = 0x3F;  // DIA: diagnostic computer
+static const uint8_t M_EWS = 0x44;  // EWS: immobilizer
+static const uint8_t M_MFL = 0x50;  // MFL: steering wheel controls
 static const uint8_t M_IHKA = 0x5B; // IHKA: climate control panel
-static const uint8_t M_RAD = 0x68; // RAD: radio module
-static const uint8_t M_IKE = 0x80; // IKE: instrument cluster
-static const uint8_t M_ALL = 0xBF; // ALL: broadcast message
-static const uint8_t M_TEL = 0xC8; // TEL: telephone module
-static const uint8_t M_LCM = 0xD0; // LCM: light control module
+static const uint8_t M_RAD = 0x68;  // RAD: radio module
+static const uint8_t M_IKEC = 0x80; // IKE: instrument cluster
+static const uint8_t M_ALL = 0xBF;  // ALL: broadcast message
+static const uint8_t M_TEL = 0xC8;  // TEL: telephone module
+static const uint8_t M_LCM = 0xD0;  // LCM: light control module
+static const uint8_t M_IKET = 0x30; // IKE TextFeld (Großes Display)
+static const uint8_t M_BMB = 0xF0;  // BMB: Bordmonitor Buttons
+static const uint8_t M_DSP = 0x6A;  // DSP: Digital Sound Processor
 
 // GM5 input/output addresses
 static const uint8_t GM5_SET_IO = 0x0C; // "set IO" diagnostic command

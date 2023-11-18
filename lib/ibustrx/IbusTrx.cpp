@@ -56,14 +56,17 @@ bool IbusTrx::available() {
     }
     t_last_rx_byte = millis();
   }
+  /*
   // assume bus is clear for sending after a short period of inactivity
-  if (tx_msg_waiting && digitalReadFast(senSta) == LOW){        //} millis()-t_last_rx_byte >= 32) {
+  //if (tx_msg_waiting && digitalReadFast(senSta) == LOW){        //} millis()-t_last_rx_byte >= 32) {
+  if (tx_msg_waiting && millis()-t_last_rx_byte >= 32) {
     // send all bytes in the transmit buffer
     for (uint8_t b = 0; b < tx_bytes; b++) {
       serialPort->write(tx_buffer[b]);
     }    
     tx_msg_waiting = false; // clear tx wait flag
   }
+  */
   // check if the receive buffer contains a valid IBUS message
   if (checkMessage()) {    
     rx_msg_waiting = true; // set rx wait flag
@@ -138,6 +141,23 @@ void IbusTrx::write(uint8_t message[]) {
   // set tx wait flag
   tx_msg_waiting = true;
   tx_bytes = tx_buffer[1] + 2;
+  Serial.println("Sende und warte");
+  // assume bus is clear for sending after a short period of inactivity
+  //if (tx_msg_waiting && digitalReadFast(senSta) == LOW){        //} millis()-t_last_rx_byte >= 32) {
+  unsigned long startTime = millis();
+  while (digitalReadFast(senSta) != LOW) 
+  {
+    if (millis() - startTime > 200) {
+      // Timeout erreicht, Abbruch oder Fehlerbehandlung hier
+      break;
+    }
+  }
+  // send all bytes in the transmit buffer
+  for (uint8_t b = 0; b < tx_bytes; b++) 
+  {
+    serialPort->write(tx_buffer[b]);
+  }    
+  tx_msg_waiting = false; // clear tx wait flag
 }
 
 // hier kann ein TextString übergeben werden, der dann centriert im IKE-Display angezeigt wird
@@ -152,15 +172,5 @@ void IbusTrx::writeTxt(const char txtmessage[])
   memcpy(IBUS_IKE_MESSAGE + 6 + startPos, txtmessage, messageLen);           // Kopiere den String
   // Setzen der Gesamtlänge der IBUS_IKE_MESSAGE, einschließlich der Nachricht und der Header
   IBUS_IKE_MESSAGE[1] = 5 + messageLen + startPos + endPos ;    // Setzen der Gesamtlänge der IBUS_IKE_MESSAGE, einschließlich der Nachricht und der Header
-  /*
-  // Berechnen der checksum
-  int checksumPos = IBUS_IKE_MESSAGE[1] + 1;
-  int checksumByte = 0;  
-  for (unsigned int i = 0; i <= IBUS_IKE_MESSAGE[1]; i++){
-    checksumByte ^= IBUS_IKE_MESSAGE[i];
-  }
-  IBUS_IKE_MESSAGE[checksumPos] = checksumByte;
-  */
-  //displayCurrentMessage();
   write(IBUS_IKE_MESSAGE); // Übergebe das gesamte IBUS_IKE_MESSAGE-Array an die write-Funktion
 }

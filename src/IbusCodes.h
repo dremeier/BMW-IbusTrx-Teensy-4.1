@@ -30,6 +30,13 @@ const byte senSta = 5;        // sen/Sta output from Melexis TH3122 pin 9.
 bool IKEclear = false;            // flag für den Zeitablauf um das IKE zu löschen
 long msTimer = 0;                 // used for cycle timing
 unsigned int t_clearIKE = 10000;  // zeit in milis bis der Text im IKE gelöscht wird
+int Tippblinken = 1;
+int Blinkbyte;
+int Blinkstatus;
+int BlinkcountLi = 0;
+int BlinkcountRe = 0;
+uint8_t turn;
+byte receivedMessage[128];    // Array zur Speicherung der empfangenen Nachricht, nur für LCM Dimmer
 
 // define the message that we want to transmit
 // the message must be defined as an array of uint8_t's (unsigned 8-bit integers)
@@ -160,10 +167,8 @@ uint8_t VOL_INCREMENT [64] PROGMEM = {
   178,180,182,184,186,188,190,192}; // Volume increments
 
 // die checksumme muss nicht mit angegeben werden
-uint8_t Hallo [26] PROGMEM = {
-  0x30, 0x19, 0x80, 0x1A, 0x34, 0x00, 0x20, 0x20, 0x20, 0x20, 0x48, 0x61, 0x6C, 0x6C, 0x6F, 0x20, 0x41, 0x6E, 0x64, 0x72, 0x65, 0x20, 0x20, 0x20, 0x20, 0x20};  //test
-uint8_t Key1FunkAuf [5] PROGMEM = {0x00, 0x04, 0xBF, 0x72, 0x26};          // andre's schlüssel funk auf:
-uint8_t Key1FunkZu [5] PROGMEM = {0x00, 0x04, 0xBF, 0x72, 0x16};           // FunkSchlüssel Andre zu
+//uint8_t Key1FunkAuf [5] PROGMEM = {0x00, 0x04, 0xBF, 0x72, 0x26};          // andre's schlüssel funk auf:
+//uint8_t Key1FunkZu [5] PROGMEM = {0x00, 0x04, 0xBF, 0x72, 0x16};           // FunkSchlüssel Andre zu
 uint8_t cleanIKE [6] PROGMEM = {0x30, 0x05, 0x80, 0x1A, 0x30, 0x00};       // IKE Anzeige wird gelöscht, wichtig sonst bleibt sie immer an
 uint8_t BlinkerRe [13] PROGMEM = {0x3F, 0x0C, 0xD0, 0x0C, 0x00, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};      //3F0FD00C000040000000000000
 uint8_t BlinkerLi [13] PROGMEM = {0x3F, 0x0C, 0xD0, 0x0C, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};     // 3F 0B D0 0C 00 00 80 00 00 00 00 00
