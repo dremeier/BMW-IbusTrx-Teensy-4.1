@@ -13,6 +13,7 @@
 #include "Arduino.h"
 #include "IbusMessage.h"
 #include "IbusNames.h"
+#include <cppQueue.h>
 
 
 class IbusTrx{
@@ -21,6 +22,7 @@ class IbusTrx{
     void end();
     void write(uint8_t message[]);        // senden der Ibus Message
     void writeTxt(const char txtmessage[]);     // senden ener Text Nachricht an das IKE
+    void send();                            // warte auf senSta low also Clear to send um zu senden
     void senStapin(uint8_t pin);
     bool available();
     bool transmitWaiting();
@@ -39,6 +41,7 @@ class IbusTrx{
     uint8_t tx_bytes = 0; // number of bytes in transmit buffer
     uint32_t t_last_rx_byte = 0; // timestamp of last byte received
     uint8_t senSta; // Die Variable senSta als private Variable der Klasse
+    //cppQueue messageQueue; // Queue für die Nachrichten
 };
 
 void ClearToSend();
