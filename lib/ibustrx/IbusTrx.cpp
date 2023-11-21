@@ -1,16 +1,14 @@
 /*
-  IbusTrx (v2.4.0)
+  a fork from IbusTrx (v2.4.0)
   Arduino library for sending and receiving messages over the BMW infotainment bus (IBUS).
-  Author: D. van Gent
-  More info: https://0x7b.nl/ibus
-
-  THIS PROGRAM IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
+  Author: A.Meier 12/2023 
+  THIS PROGRAM IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND. WIP
 */
 #include "IbusTrx.h"
 #include "IbusGlobals.h"                                  // hier befinden sich globale Variable
-#include <cppQueue.h>
+#include <cppQueue.h>                                     // Queue Library
 
-cppQueue messageQueue(sizeof(uint8_t*), 10, FIFO, true);
+cppQueue messageQueue(sizeof(uint8_t*), 10, FIFO, true);  // initiallise the Queue Library, 10 is the max count of messages, FIFO is "first in First out"
 
 // pin for Clear to Send
 void IbusTrx::senStapin(uint8_t pin){
@@ -128,48 +126,6 @@ bool IbusTrx::transmitWaiting()
   return tx_msg_waiting;
 }
 
-/* funktioniert mit warteschleife und tx_buffer
-void IbusTrx::write(uint8_t message[]) {
-  // Wenn bereits eine Nachricht gesendet wird, füge die Nachricht zur Warteschlange hinzu
-  if (tx_msg_waiting) {
-    uint8_t* newMessage = new uint8_t[message[1] + 2];
-    memcpy(newMessage, message, message[1] + 2);
-
-    // Berechne die Prüfsumme für die neue Nachricht
-    uint8_t chksum = newMessage[0] ^ newMessage[1];
-    for (uint8_t i = 2; i < newMessage[1] + 1; i++) {
-      chksum = chksum ^ newMessage[i];
-    }
-    newMessage[newMessage[1] + 1] = chksum;
-
-    messageQueue.push(&newMessage);
-    tx_msg_waiting = true;
-    tx_bytes = newMessage[1] + 2;
-    Serial.println("Nachricht in der Warteschlange");
-  } else {
-    // Wenn keine Nachricht gesendet wird, sende die Nachricht direkt
-    for (uint8_t p = 0; p <= message[1]; p++) {
-      tx_buffer[p] = message[p];
-    }
-    // calculate checksum
-    uint8_t chksum = tx_buffer[0] ^ tx_buffer[1];
-    for (uint8_t i = 2; i < tx_buffer[1] + 1; i++) {
-      chksum = chksum ^ tx_buffer[i];
-    }
-    tx_buffer[tx_buffer[1] + 1] = chksum;
-    // set tx wait flag
-    tx_msg_waiting = true;
-    tx_bytes = tx_buffer[1] + 2;
-    Serial.println("Nachricht im tx_buffer");
-  }
-  if (digitalReadFast(senSta) != LOW) 
-  {
-    Serial.println("gehe zum senden");
-    send();
-  }
-}
-*/
-
 // Hier wird eine Message in eine Warteschleife abgelegt (max 10 Stück)
 void IbusTrx::write(uint8_t message[]) {
   uint8_t* newMessage = new uint8_t[message[1] + 2];
@@ -202,6 +158,34 @@ void IbusTrx::writeTxt(const char txtmessage[])
   // Setzen der Gesamtlänge der IBUS_IKE_MESSAGE, einschließlich der Nachricht und der Header
   IBUS_IKE_MESSAGE[1] = 5 + messageLen + startPos + endPos ;    // Setzen der Gesamtlänge der IBUS_IKE_MESSAGE, einschließlich der Nachricht und der Header
   write(IBUS_IKE_MESSAGE); // Übergebe das gesamte IBUS_IKE_MESSAGE-Array an die write-Funktion
+}
+
+// hier kann ein fixes Array gesendet werden ohne Checksum berechnung, es wird ohne Interrupt direkt gesendet.
+void IbusTrx::writefix(uint8_t message[], size_t arrayLength) 
+{
+  unsigned long startTime = millis();
+  bool clearToSend = false;
+  while (millis() - startTime < 200) 
+  { // Timeout nach 200 Millisekunden
+    if (digitalReadFast(senSta) == LOW) 
+    {
+      clearToSend = true;
+      break;
+    }
+  }
+
+  if (clearToSend) 
+  {
+    //size_t arrayLength = sizeof(message);
+    for (uint8_t p = 0; p <= arrayLength; p++) 
+    {
+      serialPort->write(message[p]);
+    }
+    Serial.println("fix Nachricht gesendet");
+  }else
+  {
+    Serial.println("fix Nachricht NICHT gesendet");
+  }
 }
 
 void IbusTrx::send() 
@@ -252,64 +236,5 @@ void IbusTrx::send()
       tx_msg_waiting = false;                                   // Keine weiteren Nachrichten zum Senden vorhanden
       Serial.println("Timeout: Nachricht(en) verworfen");
     }
-  }
-}
-
-/* funktioniert nicht
-void IbusTrx::send() {
-  if (!messageQueue.isEmpty()) {
-    noInterrupts(); // Interrupts deaktivieren
-    uint8_t* nextMessagePtr;
-    messageQueue.peek(&nextMessagePtr);
-    interrupts(); // Interrupts reaktivieren
-
-    Serial.println("Warte auf Clear to send");
-    unsigned long startTime = millis();
-    while (digitalReadFast(senSta) != LOW) {
-      if (millis() - startTime > 200) {
-        Serial.println("_________ Bus nicht bereit - Sende uncontrolliert auf den Bus ____________");
-        break;
-      }
-    }
-
-    noInterrupts(); // Interrupts deaktivieren
-    for (uint8_t b = 0; b < nextMessagePtr[1] + 2; b++) {
-      serialPort->write(nextMessagePtr[b]);
-    }
-    uint8_t dummyRecord[sizeof(nextMessagePtr)];
-    messageQueue.pop(&dummyRecord); // Entferne die gesendete Nachricht aus der Warteschlange
-    interrupts(); // Interrupts reaktivieren
-    delete[] nextMessagePtr; // Speicher freigeben
-  } else {
-    tx_msg_waiting = false;
-  }
-}
-*/
-
-// hier kann ein fixes Array gesendet werden ohne Checksum berechnung, es wird ohne Interrupt direkt gesendet.
-void IbusTrx::writefix(uint8_t message[], size_t arrayLength) 
-{
-  unsigned long startTime = millis();
-  bool clearToSend = false;
-  while (millis() - startTime < 200) 
-  { // Timeout nach 200 Millisekunden
-    if (digitalReadFast(senSta) == LOW) 
-    {
-      clearToSend = true;
-      break;
-    }
-  }
-
-  if (clearToSend) 
-  {
-    //size_t arrayLength = sizeof(message);
-    for (uint8_t p = 0; p <= arrayLength; p++) 
-    {
-      serialPort->write(message[p]);
-    }
-    Serial.println("fix Nachricht gesendet");
-  }else
-  {
-    Serial.println("fix Nachricht NICHT gesendet");
   }
 }
