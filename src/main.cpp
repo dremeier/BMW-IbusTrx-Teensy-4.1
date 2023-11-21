@@ -179,8 +179,8 @@ void loop()
           case 1:
             debugSerial.println("Links Blinker ein");
             ibusTrx.write(BlinkerLi);
-            ibusTrx.writeTxt("bis bald Cordula");
-            //ibusTrx.write(LCMdimmReplay);
+            //ibusTrx.writeTxt("bis bald Cordula");
+            ibusTrx.writefix(LCMdimmReplay, LCMdimmReplaylen);
             //ibusTrx.send(); // Nachricht senden
             //ibusTrx.write(receivedMessage);
             turn = 0;

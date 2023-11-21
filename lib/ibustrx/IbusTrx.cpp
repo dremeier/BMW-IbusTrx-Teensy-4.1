@@ -255,7 +255,6 @@ void IbusTrx::send()
   }
 }
 
-
 /* funktioniert nicht
 void IbusTrx::send() {
   if (!messageQueue.isEmpty()) {
@@ -286,3 +285,31 @@ void IbusTrx::send() {
   }
 }
 */
+
+// hier kann ein fixes Array gesendet werden ohne Checksum berechnung, es wird ohne Interrupt direkt gesendet.
+void IbusTrx::writefix(uint8_t message[], size_t arrayLength) 
+{
+  unsigned long startTime = millis();
+  bool clearToSend = false;
+  while (millis() - startTime < 200) 
+  { // Timeout nach 200 Millisekunden
+    if (digitalReadFast(senSta) == LOW) 
+    {
+      clearToSend = true;
+      break;
+    }
+  }
+
+  if (clearToSend) 
+  {
+    //size_t arrayLength = sizeof(message);
+    for (uint8_t p = 0; p <= arrayLength; p++) 
+    {
+      serialPort->write(message[p]);
+    }
+    Serial.println("fix Nachricht gesendet");
+  }else
+  {
+    Serial.println("fix Nachricht NICHT gesendet");
+  }
+}
