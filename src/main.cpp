@@ -55,6 +55,7 @@ void loop()
     // these two functions return the source and destination addresses of the IBUS message:
     unsigned int source = message.source();
     unsigned int destination = message.destination();
+    //unsigned int length = message.length();
 
     // Funkschlüssel auf und zu // 00 04 BF 72 xx 
     if ((source == M_GM5) && (destination == M_ALL) && (message.b(0) == 0x72))
@@ -110,7 +111,6 @@ void loop()
       } 
     }
 
-
     // wenn tippblinken true dann:
     // Blinker: Wenn Blinkerpfeil im IKE links: D0 07 BF 5B 20 00 04 00 17 oder Blinkerpfeil im IKE rechts:  D0 07 BF 5B 40 00 04 00 77
     // D0 07 BF 5B 40 00 04 00 77
@@ -121,13 +121,10 @@ void loop()
     //              |Blinkbyte kann sein: links-> 20, 21, 23, 27, 2B, 33, 3B, rechts-> 40, 41, 43, 47, 4B, 53, 5B
     if (Tippblinken == 1) 
     {           
-      if ((source == M_LCM) && (destination == M_ALL) && (message.b(0) == 0x5B))      // Abfrage des Blinkerpfeils mit verschiedenen Lichtbedingungen
+      if ((source == M_LCM) && (destination == M_ALL) && (message.b(0) == 0x5B))      // Abfrage des Blinkerpfeils im IKE mit verschiedenen Lichtbedingungen
       {   
         if (message.b(3) == 0x04) 
         {  
-          
-          debugSerial.print("BlinkerPfeil li oder re ");
-          
           switch (message.b(1)) 
           {
             case 0x20:
@@ -141,9 +138,9 @@ void loop()
               debugSerial.println(BlinkcountLi);
               if (BlinkcountLi < 2) 
               {
-                turn=1; // Blinker links ein/LICHT ein
-                debugSerial.println("send LCM Dimmer Request from switch");
-                ibusTrx.write(LCMdimmReq);                                               // Frage den Dimm-Wert im IKE Cluster ab 3F 03 D0 0B (E7)                 
+                turn=1;                      // Blinker links ein/LICHT ein
+                debugSerial.println("send LCM Dimmer Request Turn=1");
+                ibusTrx.write(LCMdimmReq);                                               // Anfrage Dimm-Wert des IKE Cluster vom LCM: 3F 03 D0 0B (E7)                 
               }
               break;
 
@@ -159,6 +156,8 @@ void loop()
               if (BlinkcountRe < 2) 
               {
                 turn=2; // Blinker rechts ein/LICHT ein
+                debugSerial.println("send LCM Dimmer Request Turn=2");
+                ibusTrx.write(LCMdimmReq);                                               // Anfrage Dimm-Wert des IKE Cluster vom LCM: 3F 03 D0 0B (E7)  
               } 
               break;
 
@@ -174,66 +173,59 @@ void loop()
           debugSerial.println("Reset Counts");
         }
 
-        switch (turn) 
+        // wenn mehr als 3 mal geblinkt wurde, Blinker Aus
+        if ((BlinkcountLi > 2) || (BlinkcountRe > 2)) 
         {
-          case 1:
-            debugSerial.println("Links Blinker ein");
-            ibusTrx.write(BlinkerLi);
-            //ibusTrx.writeTxt("bis bald Cordula");
-            ibusTrx.writefix(LCMdimmReplay, LCMdimmReplaylen);
-            //ibusTrx.send(); // Nachricht senden
-            //ibusTrx.write(receivedMessage);
-            turn = 0;
-              
-            //delay(1500);
-            
-            //ibusTrx.write(receivedMessage);
-          break;
+          BlinkcountLi=0;       // 
+          BlinkcountRe=0;
+          if (LCMdimmOK)
+          {
+            memcpy(LCMBlinker, BlinkerAus, sizeof(BlinkerAus));                                                 // BlinkerAus in LCMBlinker speichern
+            memcpy(LCMBlinker + sizeof(BlinkerAus), LCMdimm, sizeof(LCMdimm));                                 // hinzufügen von LCMdimm
+            memcpy(LCMBlinker + sizeof(BlinkerAus) + sizeof(LCMdimm), LCMBlinkerAdd, sizeof(LCMBlinkerAdd));   // hinzufügen von FF 00
+            LCMBlinker[1] = sizeof(LCMBlinker)-1;                                                             // Länge des von LCMBlinker ermitteln und einsetzen an Position 2
+            debugSerial.println("Blinker AUS");
+            ibusTrx.write (LCMBlinker);    
+            LCMdimmOK = 0;    
+          }
+        }        
+      }
 
-          case 2:
-            debugSerial.println("Rechts Blinker ein");
-            ibusTrx.write(BlinkerRe);                                 // 3F 0C D0 0C 00 00 40 00 00 00 00 00 00 AF
-            //ibusTrx.write(receivedMessage);
-            turn = 0;
-            //delay(1500);
-            //ibusTrx.write(BlinkerAus);
-            //ibusTrx.write(receivedMessage);
-          break;  
-
-          default:
-            if ((BlinkcountLi > 2) || (BlinkcountRe > 2)) // wenn mehr als 3 mal geblinkt wurde
-            {
-              BlinkcountLi=0;       // 
-              BlinkcountRe=0;
-              ibusTrx.write(BlinkerAus);
-              debugSerial.println("Blinker AUS");
-            } 
-          break;
-        }
-
-        // Blinker selection
-        if (turn == 1 || turn == 2) 
-        {
-          ibusTrx.write(LCMdimmReq);                                                // Frage den Dimm-Wert im IKE Cluster ab 3F 03 D0 0B (E7) 
-          debugSerial.println("send LCM Dimmer Request");
-          /*int Zaehler = 0;
-          while (Zaehler <= 10) {                                                  //100 Notausstieg wenn nach 100 Bytes keine Diagnose-Antwort vom LCM kommt//// 3F LL 00 0C 10 05 3F CK // 24.7% = 63/255 = 3F/FF
-            Zaehler++;
-            if ((source == 0xA0) && (length == 0xC1) && (destination == 0xC0)){     // Antwort auf den Request des LCM-Status (A0 C1 C0 00 20 00 00 00 00 00 A0 00 00 88 14 84 E4 + FF 00 //0A 00 00 00 00 00 00 00 00 00 00 FF FF FE)
-              for (int i = 0; i < length; ++i) {                                    // diesen ibus code in ein array packen und nach dem blinker-code zurüsckschicken
-                  receivedMessage[i] = packet[i];
-              }
-              receivedMessage[0] = 0x0C;
-              byte checksum = 0;
-              for (int i = 0; i < length - 1; ++i) {
-                checksum ^= receivedMessage[i];
-              }
-              receivedMessage[length - 1] = checksum;
-            }
-            return; 
-          } */
+      // Abfrag des LCM DimmWertes im KombiInstrument
+      if (turn == 1 || turn == 2) 
+      {
+        if ((source == M_LCM) && (destination == M_DIA) && (message.b(0) == 0xA0)){     // Antwort auf den Request des LCM-Status (D0 xx 3F A0 .....)
+          debugSerial.println("LCM Antwort erkannt");
+          for (int i = 1; i < 17; ++i) 
+          {                                               
+              LCMdimm[i-1] =message.b(i);         // lese 16 bytes ein = message.b(1-16)  (D0 xx 3F A0 |-> C1 C0 00 20 00 00 00 00 00 A0 00 00 88 14 84 E4 .....)
+          }
+          LCMdimmOK = 1;
           
-        }
+          if (turn == 1)    // Blinker links
+          {           
+            // sende blinker links und die 16 byte der LCMdimm Antwort + FF 00
+            memcpy(LCMBlinker, BlinkerLi, sizeof(BlinkerLi));                                                 // BlinkerLi in LCMBlinker speichern
+            memcpy(LCMBlinker + sizeof(BlinkerLi), LCMdimm, sizeof(LCMdimm));                                 // hinzufügen von LCMdimm
+            memcpy(LCMBlinker + sizeof(BlinkerLi) + sizeof(LCMdimm), LCMBlinkerAdd, sizeof(LCMBlinkerAdd));   // hinzufügen von FF 00
+            LCMBlinker[1] = sizeof(LCMBlinker)-1;                                                             // Länge des von LCMBlinker ermitteln und einsetzen an Position 2
+            debugSerial.println("Links Blinker ein");
+            ibusTrx.write (LCMBlinker);
+            turn = 0;   // Blinker abfrage erledigt
+          }
+
+          if (turn == 2)    // Blinker rechts
+          {           
+            // sende blinker rechts und die 16 byte der LCMdimm Antwort + FF 00
+            memcpy(LCMBlinker, BlinkerRe, sizeof(BlinkerRe));                                                 // BlinkerRe in LCMBlinker speichern
+            memcpy(LCMBlinker + sizeof(BlinkerRe), LCMdimm, sizeof(LCMdimm));                                 // hinzufügen von LCMdimm
+            memcpy(LCMBlinker + sizeof(BlinkerRe) + sizeof(LCMdimm), LCMBlinkerAdd, sizeof(LCMBlinkerAdd));   // hinzufügen von FF 00
+            LCMBlinker[1] = sizeof(LCMBlinker)-1;                                                             // Länge des von LCMBlinker ermitteln und einsetzen an Position 2
+            debugSerial.println("Rechts Blinker ein");
+            ibusTrx.write (LCMBlinker);
+            turn = 0;   // Blinker abfrage erledigt
+          }
+        }       
       }
     }  
 
@@ -245,7 +237,7 @@ void loop()
       if (message.b(1) == 0x05) 
       {
         // write the message to the transmit buffer
-        ibusTrx.writeTxt("Tschuess Andre");
+        ibusTrx.writeTxt("Hallo BMW iBus");
       }
     }
 
@@ -286,10 +278,6 @@ void loop()
 
 
   // ############################# weiter im Loop ##############
-
-
-
-
   // Text im IKE löschen
   if (IKEclear)                               // bereit um den Text im IKE zu löschen
   {                                  
@@ -302,9 +290,9 @@ void loop()
 }
 
 
-// Globale Funktion außerhalb der Klasse
+// Wenn Interrup dann sende die iBus Codes
 void ClearToSend() {
-  debugSerial.println("-Interrupt-");
+  //debugSerial.println("-Interrupt-");
   ibusTrx.send(); // Nachricht senden, wenn Interrupt ausgelöst wird
 }
 

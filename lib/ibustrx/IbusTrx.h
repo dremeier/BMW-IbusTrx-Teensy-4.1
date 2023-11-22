@@ -33,8 +33,8 @@ class IbusTrx{
     bool checkMessage();
     bool tx_msg_waiting = false;      // message waiting in transmit buffer
     bool rx_msg_waiting = false;      // message waiting in receive buffer
-    uint8_t rx_buffer[0xA0] = {0x00}; // receive bufer
-    uint8_t tx_buffer[0x20] = {0x00}; // transmit buffer, hier wie die maximale Größe angegeben, 0x20 =32 bytes also 32 hex werte können maximal gesendet werden, 0xC1=193
+    uint8_t rx_buffer[0x40] = {0x00}; // receive bufer
+    uint8_t tx_buffer[0x40] = {0x00}; // transmit buffer, hier wie die maximale Größe angegeben, 0x20 =32 bytes also 32 hex werte können maximal gesendet werden, 0xC1=193
     uint8_t rx_bytes = 0;             // number of bytes in receive buffer
     uint8_t tx_bytes = 0;             // number of bytes in transmit buffer
     uint32_t t_last_rx_byte = 0;      // timestamp of last byte received

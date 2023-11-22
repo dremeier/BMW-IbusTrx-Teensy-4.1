@@ -142,7 +142,7 @@ void IbusTrx::write(uint8_t message[]) {
   messageQueue.push(&newMessage);         // die fertige Message mit Checksumme in die Warteschleife (Queue) legen
   tx_msg_waiting = true;                  // Anzeigen, dass eine Message bereit ist zum senden
   tx_bytes = newMessage[1] + 2;           // größe des Arrays bestimmen
-  Serial.println("Nachricht in der Warteschlange");
+  //Serial.println("Nachricht in der Warteschlange");
 }
 
 // hier kann ein TextString übergeben werden, der dann centriert im IKE-Display angezeigt wird
@@ -181,10 +181,10 @@ void IbusTrx::writefix(uint8_t message[], size_t arrayLength)
     {
       serialPort->write(message[p]);
     }
-    Serial.println("fix Nachricht gesendet");
+    //Serial.println("fix Nachricht gesendet");
   }else
   {
-    Serial.println("fix Nachricht NICHT gesendet");
+    //Serial.println("fix Nachricht NICHT gesendet");
   }
 }
 
@@ -217,7 +217,7 @@ void IbusTrx::send()
         }
         uint8_t dummyRecord[sizeof(nextMessagePtr)];
         messageQueue.pop(&dummyRecord); // Entferne die gesendete Nachricht aus der Warteschlange
-        Serial.println("sende aus der Warteschlange");
+        //Serial.println("sende aus der Warteschlange");
       }
       // Wenn keine Nachrichten in der Warteschlange sind, sende die aktuelle Nachricht
       //for (uint8_t b = 0; b < tx_bytes; b++) {
@@ -234,7 +234,7 @@ void IbusTrx::send()
         messageQueue.pop(&dummyRecord);                         // Entferne die Nachrichten aus der Warteschlange
       }
       tx_msg_waiting = false;                                   // Keine weiteren Nachrichten zum Senden vorhanden
-      Serial.println("Timeout: Nachricht(en) verworfen");
+      //Serial.println("Timeout: Nachricht(en) verworfen");
     }
   }
 }
