@@ -5,15 +5,30 @@
 #define IbusCodes_h
 #include <Arduino.h>
 
-// Comment line to disable debug messages
-#define IBUS_DEBUG 
+/*------------------------ DEBUG Serial.print -------------------------------------------------------------*/
+#define DEBUG Serial     // USB Port on Teensy   // debugging aktivieren, if comment in then you have debugging over serial.print
+//  my debug.h ;                        '#define DEBUG Serial' auskommentieren um den print abzuschalten
+  #ifdef DEBUG
+    #define debug(...) DEBUG.print(__VA_ARGS__)
+    #define debugln(...) DEBUG.println(__VA_ARGS__)
+    #define debugbegin(...) DEBUG.begin(__VA_ARGS__)
+    #define debugf(...) DEBUG.printf(__VA_ARGS__)
+  #else
+    #define debug(...)
+    #define debugln(...)
+    #define debugbegin(...)
+    #define debugf(...)
+  #endif
+// anstatt: serial.print wird: debug verwendet
+// ende debug.h
+// #############################################################################################################
 
-#define debugSerial Serial        // USB Port on Teensy
+//#define debugSerial Serial        // USB Port on Teensy
 #define ibusPort Serial2          // Serial für Ibus = Serial2 = RxPIN 7 und TxPin 8 , CleartoSent = Pin 5
 const byte ledPin = 13;           // buildin LED
 const byte senSta = 5;            // sen/Sta output from Melexis TH3122 pin 9.
 
-bool IKEclear = false;            // flag für den Zeitablauf um das IKE zu löschen
+bool IKEclear = false;            // flag um das IKE zu löschen
 long msTimer = 0;                 // used for cycle timing
 unsigned int t_clearIKE = 10000;  // zeit in milis bis der Text im IKE gelöscht wird
 int Tippblinken = 1;              // flag zum ein und aus schalten der Tipp-Blinker Funktion
@@ -23,6 +38,12 @@ byte LCMdimm[16];                 // ausgelesener Dimmwert
 byte LCMBlinker[31];              // Array für das zusammenbauen des Blinker-Befehls mit LCMdimmwerten
 uint8_t turn;                     // flag für Blinker li und re
 uint8_t LCMdimmOK;                // flag für LCMdimmWerte erfolgreich ausgelesen  
+uint8_t speed;                    // Geschwindigkeit in Km/h
+uint16_t rpm;                     // Motordrehzahl
+uint8_t outTemp;                  // Außen Temperatur
+uint8_t coolant;                  // Kühlmittel Temperatur
+
+void Coolant (uint8_t temp);
 
 /*
 // Example: define the message that we want to transmit
@@ -36,7 +57,7 @@ uint8_t toggleDomeLight[6] = {
   0x01 // second parameter
   // don't worry about the checksum, the library automatically calculates it for you
 };*/
-
+/*
 // IBUS message definitions. Add/Remove as needed.
 uint8_t KEY_IN [7] PROGMEM = { 
   0x44 , 0x05 , 0xBF , 0x74 , 0x04 , 0x00 , 0x8E }; // Ignition key in
@@ -152,16 +173,19 @@ uint8_t VOL_INCREMENT [64] PROGMEM = {
   0,68,70,72,74,76,78,80,82,84,86,88,90,92,94,96,98,100,102,104,106,108,110,112,114,116,118,120,122,124,126,
   128,130,132,134,136,138,140,142,144,146,148,150,152,154,156,158,160,162,164,166,168,170,172,174,176,
   178,180,182,184,186,188,190,192}; // Volume increments
+*/
 
 // die checksumme muss nicht mit angegeben werden
-//uint8_t Key1FunkAuf [5] PROGMEM = {0x00, 0x04, 0xBF, 0x72, 0x26};          // andre's schlüssel funk auf:
-//uint8_t Key1FunkZu [5] PROGMEM = {0x00, 0x04, 0xBF, 0x72, 0x16};           // FunkSchlüssel Andre zu
-uint8_t cleanIKE [6] PROGMEM = {0x30, 0x05, 0x80, 0x1A, 0x30, 0x00};       // IKE Anzeige wird gelöscht, wichtig sonst bleibt sie immer an
-uint8_t BlinkerRe [13] PROGMEM = {0x3F, 0x0C, 0xD0, 0x0C, 0x00, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};      //3F0FD00C000040000000000000
-uint8_t BlinkerLi [13] PROGMEM = {0x3F, 0x0c, 0xD0, 0x0C, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};     // 3F 0B D0 0C 00 00 80 00 00 00 00 00
-uint8_t BlinkerAus [13] PROGMEM = {0x3F, 0x0C, 0xD0, 0x0C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};    //3F0FD00C000000000000000000
-uint8_t LCMdimmReq [] PROGMEM ={0x3F, 0x03, 0xD0, 0x0B};                  // Diagnoseanfrage ans LCM um Helligkeitswert für IKE zu finden
-uint8_t LCMdimmReplay [32] PROGMEM = {0xA0, 0xC1, 0xC0, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0xA0, 0x00, 0x00, 0x88, 0x14, 0x84, 0xE4, 0xFF, 0x00, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFE};
-size_t LCMdimmReplaylen = 31; // die Größe von LCMdimmReplay, komischerweise ist das Array 32 byte groß aber es funktioniert nur mit 31
-uint8_t LCMBlinkerAdd [2]  PROGMEM = {0xFF, 0x00}; 
+uint8_t cleanIKE [6] PROGMEM = {
+  0x30, 0x05, 0x80, 0x1A, 0x30, 0x00}; // IKE Anzeige wird gelöscht, wichtig sonst bleibt sie immer an
+uint8_t BlinkerRe [13] PROGMEM = {
+  0x3F, 0x0C, 0xD0, 0x0C, 0x00, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}; //3F0FD00C000040000000000000
+uint8_t BlinkerLi [13] PROGMEM = {
+  0x3F, 0x0c, 0xD0, 0x0C, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}; // 3F 0B D0 0C 00 00 80 00 00 00 00 00
+uint8_t BlinkerAus [13] PROGMEM = {
+  0x3F, 0x0C, 0xD0, 0x0C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}; //3F0FD00C000000000000000000
+uint8_t LCMdimmReq [] PROGMEM ={0x3F, 0x03, 0xD0, 0x0B}; // Diagnoseanfrage ans LCM um Helligkeitswert für IKE zu finden
+//uint8_t LCMdimmReplay [32] PROGMEM = {0xA0, 0xC1, 0xC0, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0xA0, 0x00, 0x00, 0x88, 0x14, 0x84, 0xE4, 0xFF, 0x00, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFE};
+//size_t LCMdimmReplaylen = 31; // die Größe von LCMdimmReplay, komischerweise ist das Array 32 byte groß aber es funktioniert nur mit 31
+uint8_t LCMBlinkerAdd [2]  PROGMEM = {0xFF, 0x00}; // Anhängsel nach dem LCMBlinker zusammen bau
 #endif

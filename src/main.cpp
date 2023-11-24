@@ -12,14 +12,14 @@ void setup(){
   pinMode(ledPin, OUTPUT);
   pinMode(senSta, INPUT_PULLUP);                          // pin 9 des TH3122 für Clear to send, mit einer diode von Teensy pin > TH3122 pin9
   
-  debugSerial.begin(115200);                              // Teensy USB port, nicht nötig
+  debugbegin(115200);                              // Teensy USB port, nicht nötig
   ibusTrx.begin(ibusPort);                                // Hardware Serial Nr. an IbusTrx übergeben
   
   ibusTrx.senStapin(senSta);                              // senSta Pin an IbusTrx Library übergeben
   attachInterrupt(digitalPinToInterrupt(senSta), ClearToSend, FALLING);   // Interrupt: Wenn senSta LOW wird, gehe zu Funktion ClearToSend
   delay (1000);
   
-  debugSerial.println(F("-- IBUS trx on Teensy 4.x --"));
+  debugln(F("-- IBUS trx on Teensy 4.x --"));
 }
 
 
@@ -39,18 +39,22 @@ void loop()
     // read the incoming message (this copies the message and clears the receive buffer)
     IbusMessage message = ibusTrx.readMessage();
 
-    // every module on the IBUS has its own 8-bit address.
-    // the following addresses are defined in the IbusTrx library:
-    // M_GM5: body control module
-    // M_DIA: diagnostic computer
-    // M_EWS: immobilizer
-    // M_MFL: steering wheel controls
-    // M_IHKA: climate control panel
-    // M_RAD: radio module
-    // M_IKE: instrument cluster
-    // M_ALL: broadcast message
-    // M_TEL: telephone module
-    // M_LCM: light control module
+    /* the following addresses are defined in the IbusTrx library:
+    M_GM5 = 0x00;  // GM5: body control module
+    M_NAV = 0x3B;  // NAV: Navigation / Monitor / Bordcomputer
+    M_DIA = 0x3F;  // DIA: diagnostic computer
+    M_EWS = 0x44;  // EWS: immobilizer
+    M_MFL = 0x50;  // MFL: steering wheel controls
+    M_IHKA = 0x5B; // IHKA: climate control panel
+    M_RAD = 0x68;  // RAD: radio module
+    M_IKEC = 0x80; // IKE: instrument cluster
+    M_ALL = 0xBF;  // ALL: broadcast message  (GLO = Global)
+    M_TEL = 0xC8;  // TEL: telephone module
+    M_LCM = 0xD0;  // LCM: light control module
+    M_IKET = 0x30; // IKE TextFeld (Großes Display)
+    M_BMB = 0xF0;  // BMB: Bordmonitor Buttons
+    M_DSP = 0x6A;  // DSP: Digital Sound Processor
+    */
     
     // these two functions return the source and destination addresses of the IBUS message:
     unsigned int source = message.source();
@@ -74,10 +78,6 @@ void loop()
       }
       // goto Heimleuchten: LDR auslesen und bei Dunkelheit Licht einschalten
     }
-    /* // Alternative:
-    if(memcmp_P(packet, Key1FunkAuf, 6) == 0 ) {
-      ibusTrx.writeTxt("einsteigen Andre");
-    }  */
 
     // Schlüssel im Schloß // 44 05 bf 74 xx xx
     if ((source == M_EWS) && (destination == M_ALL) && (message.b(0) == 0x74))
@@ -98,13 +98,13 @@ void loop()
       {               
         if (message.b(2) == 0x00)
         {
-          ibusTrx.writeTxt("gute Fahrt Cordula");                     //  Corula
+          ibusTrx.writeTxt("gute Fahrt Cordula");                    // 44 05 bf 74 04 00 Cordula 
           IKEclear=true;                                             // bereit um den Text im IKE zu löschen
           msTimer=millis();                                          // aktuelle Zeit in den Timer legen
         }
         if (message.b(2) == 0x05) 
         {
-          ibusTrx.writeTxt("gute Fahrt Andre");                       // Andre
+          ibusTrx.writeTxt("gute Fahrt Andre");                      // 44 05 bf 74 04 05 Andre
           IKEclear=true;                                             // bereit um den Text im IKE zu löschen
           msTimer=millis();                                          // aktuelle Zeit in den Timer legen
         }
@@ -135,11 +135,11 @@ void loop()
             case 0x33:
             case 0x3B:
               BlinkcountLi++;
-              debugSerial.println(BlinkcountLi);
+              debugln(BlinkcountLi);
               if (BlinkcountLi < 2) 
               {
                 turn=1;                      // Blinker links ein/LICHT ein
-                debugSerial.println("send LCM Dimmer Request Turn=1");
+                debugln("send LCM Dimmer Request Turn=1");
                 ibusTrx.write(LCMdimmReq);                                               // Anfrage Dimm-Wert des IKE Cluster vom LCM: 3F 03 D0 0B (E7)                 
               }
               break;
@@ -152,11 +152,11 @@ void loop()
             case 0x53:
             case 0x5B:
               BlinkcountRe++;
-              debugSerial.println(BlinkcountRe);
+              debugln(BlinkcountRe);
               if (BlinkcountRe < 2) 
               {
                 turn=2; // Blinker rechts ein/LICHT ein
-                debugSerial.println("send LCM Dimmer Request Turn=2");
+                debugln("send LCM Dimmer Request Turn=2");
                 ibusTrx.write(LCMdimmReq);                                               // Anfrage Dimm-Wert des IKE Cluster vom LCM: 3F 03 D0 0B (E7)  
               } 
               break;
@@ -170,7 +170,7 @@ void loop()
         {     // D0 07 BF 5B 40 00 00 00 73 , byte 3 = 00 =! Indicator_sync       // D0 07 BF 5B 00 = Byte 1=  0x00 = All_Off
           BlinkcountLi = 0;
           BlinkcountRe = 0;
-          debugSerial.println("Reset Counts");
+          debugln("Reset Counts");
         }
 
         // wenn mehr als 3 mal geblinkt wurde, Blinker Aus
@@ -184,7 +184,7 @@ void loop()
             memcpy(LCMBlinker + sizeof(BlinkerAus), LCMdimm, sizeof(LCMdimm));                                 // hinzufügen von LCMdimm
             memcpy(LCMBlinker + sizeof(BlinkerAus) + sizeof(LCMdimm), LCMBlinkerAdd, sizeof(LCMBlinkerAdd));   // hinzufügen von FF 00
             LCMBlinker[1] = sizeof(LCMBlinker)-1;                                                             // Länge des von LCMBlinker ermitteln und einsetzen an Position 2
-            debugSerial.println("Blinker AUS");
+            debugln("Blinker AUS");
             ibusTrx.write (LCMBlinker);    
             LCMdimmOK = 0;    
           }
@@ -195,7 +195,7 @@ void loop()
       if (turn == 1 || turn == 2) 
       {
         if ((source == M_LCM) && (destination == M_DIA) && (message.b(0) == 0xA0)){     // Antwort auf den Request des LCM-Status (D0 xx 3F A0 .....)
-          debugSerial.println("LCM Antwort erkannt");
+          debugln("LCM Antwort erkannt");
           for (int i = 1; i < 17; ++i) 
           {                                               
               LCMdimm[i-1] =message.b(i);         // lese 16 bytes ein = message.b(1-16)  (D0 xx 3F A0 |-> C1 C0 00 20 00 00 00 00 00 A0 00 00 88 14 84 E4 .....)
@@ -209,7 +209,7 @@ void loop()
             memcpy(LCMBlinker + sizeof(BlinkerLi), LCMdimm, sizeof(LCMdimm));                                 // hinzufügen von LCMdimm
             memcpy(LCMBlinker + sizeof(BlinkerLi) + sizeof(LCMdimm), LCMBlinkerAdd, sizeof(LCMBlinkerAdd));   // hinzufügen von FF 00
             LCMBlinker[1] = sizeof(LCMBlinker)-1;                                                             // Länge des von LCMBlinker ermitteln und einsetzen an Position 2
-            debugSerial.println("Links Blinker ein");
+            debugln("Links Blinker ein");
             ibusTrx.write (LCMBlinker);
             turn = 0;   // Blinker abfrage erledigt
           }
@@ -221,13 +221,44 @@ void loop()
             memcpy(LCMBlinker + sizeof(BlinkerRe), LCMdimm, sizeof(LCMdimm));                                 // hinzufügen von LCMdimm
             memcpy(LCMBlinker + sizeof(BlinkerRe) + sizeof(LCMdimm), LCMBlinkerAdd, sizeof(LCMBlinkerAdd));   // hinzufügen von FF 00
             LCMBlinker[1] = sizeof(LCMBlinker)-1;                                                             // Länge des von LCMBlinker ermitteln und einsetzen an Position 2
-            debugSerial.println("Rechts Blinker ein");
+            debugln("Rechts Blinker ein");
             ibusTrx.write (LCMBlinker);
             turn = 0;   // Blinker abfrage erledigt
           }
         }       
       }
     }  
+
+    // Geschwindigkeit, RPM, OutTemp, CoolantTemp
+    if ((source == M_IKEC) && (destination == M_ALL))     
+      {
+        switch (message.b(0)) 
+        {
+          case 0x18:                                // 80 05 BF 18 3F 18 (05),IKE --> GLO: Speed/RPM, Speed 126 km/h  [78 mph], 2,400 RPM
+              speed = message.b(1) * 2;
+              rpm = message.b(2) * 100;
+              debug("Speed: ");
+              debugln(speed);
+              debug("RPM: ");
+              debugln(rpm);
+            break;
+
+          case 0x19:                                // 80 05 BF 19 2F 5C (50),IKE --> GLO Temperature Outside 47C Coolant 92C
+              outTemp = message.b(1);
+              debug("Aussen Temperatur: ");
+              debugln(outTemp);
+
+              coolant = message.b(2);
+              debug("Kuehlmittel Temperatur: ");
+              debugln(coolant);
+              Coolant (coolant);                    // Gehe in die Funktion um Die Kühlmitteltemperatur im Bordmonitor anzuzeigen
+            break;
+
+          default:
+            // Nichts tun für unbekannte Werte
+          break;
+        }
+      }
 
 
     // Beispiel: trigger based on a message from the steering wheel controls
@@ -248,8 +279,8 @@ void loop()
       // this function is rarely needed, 
       // in most cases the number of payload fields is already known based on the type of message
     //unsigned int length = message.length();
-      //debugSerial.print(F("Length "));
-      //debugSerial.println(messageLength);
+      //debug(F("Length "));
+      //debugln(messageLength);
 
       // the b(n) function returns the n'th byte of the message payload
       // b(0) will return the first byte, b(1) returns the second byte, etc.  
@@ -270,6 +301,8 @@ void loop()
       // etc.
     }
     // etc.
+
+
   } // ############################ if (messageWaiting) ENDE #################################
   
 
@@ -280,20 +313,52 @@ void loop()
   // ############################# weiter im Loop ##############
   // Text im IKE löschen
   if (IKEclear)                               // bereit um den Text im IKE zu löschen
-  {                                  
+  { 
+    if (speed > 30)
+    {
+      ibusTrx.write(cleanIKE);                // lösche den Text
+      IKEclear=false;                         // Fertig
+    }
+    /*
     if ((millis()-msTimer) >= t_clearIKE)     // Zeit abgelaufen?
     {      
       ibusTrx.write(cleanIKE);                // lösche den Text
       IKEclear=false;                         // Fertig
-    }
+    }*/
   }
 }
 
+// Kühlmitteltemperatur im Bordmonitor anzuzeigen
+void Coolant (uint8_t coolant)
+{
+  uint8_t KTempDeci[3]; // Kühlmitteltemperatur in Decimal zerlegt
+  uint8_t zerlegen = coolant;   // Hilfs Variable zum zerlegen des Decimalwertes
+  
+  for (int i = 2; i >= 0; --i) 
+  {
+    KTempDeci[i] = (zerlegen % 10) + 0x1E; // Die letzte Ziffer der Zahl +30 (in Hex 0x1E) und im Array speichern
+    zerlegen /= 10;                        // Eine Ziffer entfernen
+  }
+  
+  // wenn coolant nur zwei Ziffern hat füge ein Leerzeichen in HEX voran
+  if (coolant < 100) 
+  {
+    KTempDeci[0] = 20;    
+  }
+/*  for (int i = 0; i < 3; i++) 
+  {
+    debug(" ");
+    debug(KTempDeci[i]);
+  }*/
+
+// Zeichenkette zusammen bauen: 80 0F E7 24 0E 00 20  + KTempDeci + B0 43 20 53 45 43 20 + cksum
+
+
+  //ibusTrx.write (KTempDeci);
+}
 
 // Wenn Interrup dann sende die iBus Codes
 void ClearToSend() {
-  //debugSerial.println("-Interrupt-");
+  //debugln("-Interrupt-");
   ibusTrx.send(); // Nachricht senden, wenn Interrupt ausgelöst wird
 }
-
-
