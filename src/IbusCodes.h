@@ -36,6 +36,7 @@ uint8_t BlinkcountLi = 0;         // flag um die Anzahl der Blinker zu zählen
 uint8_t BlinkcountRe = 0;
 byte LCMdimm[16];                 // ausgelesener Dimmwert
 byte LCMBlinker[31];              // Array für das zusammenbauen des Blinker-Befehls mit LCMdimmwerten
+byte BCcool[15];                  // Array für die Kühlmitteltemperatur im Bordmonitor
 uint8_t turn;                     // flag für Blinker li und re
 uint8_t LCMdimmOK;                // flag für LCMdimmWerte erfolgreich ausgelesen  
 uint8_t speed;                    // Geschwindigkeit in Km/h
@@ -188,4 +189,6 @@ uint8_t LCMdimmReq [] PROGMEM ={0x3F, 0x03, 0xD0, 0x0B}; // Diagnoseanfrage ans 
 //uint8_t LCMdimmReplay [32] PROGMEM = {0xA0, 0xC1, 0xC0, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0xA0, 0x00, 0x00, 0x88, 0x14, 0x84, 0xE4, 0xFF, 0x00, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFE};
 //size_t LCMdimmReplaylen = 31; // die Größe von LCMdimmReplay, komischerweise ist das Array 32 byte groß aber es funktioniert nur mit 31
 uint8_t LCMBlinkerAdd [2]  PROGMEM = {0xFF, 0x00}; // Anhängsel nach dem LCMBlinker zusammen bau
+uint8_t BCcoolbeginn [7]  PROGMEM = {0x80, 0x0E, 0xE7, 0x24, 0x0E, 0x00, 0x20}; // Kühlmitteltemperatur im Bordmonitor anzuzeigen Anfangs-Kette
+uint8_t BCcoolend [5] PROGMEM = {0x20, 0xB0, 0x43, 0x20, 0x20}; // Kühlmitteltemperatur im Bordmonitor anzuzeigen Schluß-Kette (_°C__)
 #endif

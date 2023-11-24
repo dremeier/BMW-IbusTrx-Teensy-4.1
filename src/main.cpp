@@ -326,35 +326,42 @@ void loop()
       IKEclear=false;                         // Fertig
     }*/
   }
-}
+}  // ########################### Ende loop ##############################################
+
+
+
+/*#####################################################
+################ Funktionen ###########################
+#######################################################*/
 
 // Kühlmitteltemperatur im Bordmonitor anzuzeigen
 void Coolant (uint8_t coolant)
 {
-  uint8_t KTempDeci[3]; // Kühlmitteltemperatur in Decimal zerlegt
+  uint8_t KTempDeci[3]; // Kühlmitteltemperatur zerlegt und in Hex abgelegt z.B. 128 => 31 32 38
   uint8_t zerlegen = coolant;   // Hilfs Variable zum zerlegen des Decimalwertes
-  
+  // zerlegen von coolant
   for (int i = 2; i >= 0; --i) 
   {
-    KTempDeci[i] = (zerlegen % 10) + 0x1E; // Die letzte Ziffer der Zahl +30 (in Hex 0x1E) und im Array speichern
+    KTempDeci[i] = (zerlegen % 10) + 0x30; // Die letzte Ziffer der Zahl +30 (in Hex 0x1E) und im Array speichern
     zerlegen /= 10;                        // Eine Ziffer entfernen
   }
-  
   // wenn coolant nur zwei Ziffern hat füge ein Leerzeichen in HEX voran
   if (coolant < 100) 
   {
-    KTempDeci[0] = 20;    
+    KTempDeci[0] = 0x20;    
   }
-/*  for (int i = 0; i < 3; i++) 
+  /*  for (int i = 0; i < 3; i++) 
   {
     debug(" ");
     debug(KTempDeci[i]);
   }*/
-
-// Zeichenkette zusammen bauen: 80 0F E7 24 0E 00 20  + KTempDeci + B0 43 20 53 45 43 20 + cksum
-
-
-  //ibusTrx.write (KTempDeci);
+  // Zeichenkette zusammen bauen: 80 0F E7 24 0E 00 20  + KTempDeci + 20 B0 43 20 20 + cksum
+  memcpy(BCcool, BCcoolbeginn, sizeof(BCcoolbeginn));                                                 // BlinkerLi in LCMBlinker speichern
+  memcpy(BCcool + sizeof(BCcoolbeginn), KTempDeci, sizeof(KTempDeci));                                 // hinzufügen von LCMdimm
+  memcpy(BCcool + sizeof(BCcoolbeginn) + sizeof(KTempDeci), BCcoolend, sizeof(BCcoolend));   // hinzufügen von FF 00
+  BCcool[1] = sizeof(BCcool)-1;  
+  // sende an den Bordmonitor im Bereiche BC anstelle von Timer 1 oder 2
+  ibusTrx.write (BCcool);
 }
 
 // Wenn Interrup dann sende die iBus Codes
