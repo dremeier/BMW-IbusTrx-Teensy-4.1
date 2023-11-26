@@ -31,7 +31,9 @@ const byte senSta = 5;            // sen/Sta output from Melexis TH3122 pin 9.
 bool IKEclear = false;            // flag um das IKE zu löschen
 long msTimer = 0;                 // used for cycle timing
 unsigned int t_clearIKE = 10000;  // zeit in milis bis der Text im IKE gelöscht wird
-int Tippblinken = 1;              // flag zum ein und aus schalten der Tipp-Blinker Funktion
+bool Tippblinken = true;              // flag zum ein und aus schalten der Tipp-Blinker Funktion
+bool AutomVerriegeln = true;             // Automatisches Verriegln bei Geschwindigkeit > 30Km/h und Entriegeln bei Motor aus
+bool ZVlocked =false;             // flag für geschwindigkeit war größer 30 usw.
 uint8_t BlinkcountLi = 0;         // flag um die Anzahl der Blinker zu zählen
 uint8_t BlinkcountRe = 0;
 byte LCMdimm[16];                 // ausgelesener Dimmwert
@@ -44,7 +46,24 @@ uint16_t rpm;                     // Motordrehzahl
 uint8_t outTemp;                  // Außen Temperatur
 uint8_t coolant;                  // Kühlmittel Temperatur
 
+const int LDR_PIN = A0;  // Analog-Pin, an dem der LDR angeschlossen ist
+const int NUM_READINGS = 10;  // Anzahl der Messungen für den Durchschnitt
+int ldrValues[NUM_READINGS];  // Array für Messwerte
+int ldrindex = 0;  // Index für das Speichern der Werte im Array
+int sum = 0;  // Variable zur Berechnung der Summe
+int average = 0;  // Variable für den Durchschnittswert
+bool dunkel = false;  // Flag zur Entscheidung über Grenzwerte
+bool heiml = false; // Funkschlüssel ZV auf, für Heimleuchten
+bool MotorOff =false; // Schlüssel aus dem Zündschloß gezogen für Heimleuchten und Zentralverriegelung auf
+bool DvrdoorFr = false; // Fahrertür auf
+
+// Ober- und Untergrenze für den LDR-Wert, Heimleuchten
+/*Natürliches Tageslicht erreicht an wolkenfreien Sommertagen bis zu 100.000 Lux, ein bewölkter Himmel 20.000 Lux. Im Winter erreicht ein bedeckter Himmel etwa 3.500 Lux. Bei Dämmerung herrschen ca. 750 Lux.*/
+const int UPPER_THRESHOLD = 500;
+const int LOWER_THRESHOLD = 400;
+
 void Coolant (uint8_t temp);
+void Daemmerung() ;
 
 /*
 // Example: define the message that we want to transmit
@@ -189,6 +208,15 @@ uint8_t LCMdimmReq [] PROGMEM ={0x3F, 0x03, 0xD0, 0x0B}; // Diagnoseanfrage ans 
 //uint8_t LCMdimmReplay [32] PROGMEM = {0xA0, 0xC1, 0xC0, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0xA0, 0x00, 0x00, 0x88, 0x14, 0x84, 0xE4, 0xFF, 0x00, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFE};
 //size_t LCMdimmReplaylen = 31; // die Größe von LCMdimmReplay, komischerweise ist das Array 32 byte groß aber es funktioniert nur mit 31
 uint8_t LCMBlinkerAdd [2]  PROGMEM = {0xFF, 0x00}; // Anhängsel nach dem LCMBlinker zusammen bau
-uint8_t BCcoolbeginn [7]  PROGMEM = {0x80, 0x0E, 0xE7, 0x24, 0x0E, 0x00, 0x20}; // Kühlmitteltemperatur im Bordmonitor anzuzeigen Anfangs-Kette
-uint8_t BCcoolend [5] PROGMEM = {0x20, 0xB0, 0x43, 0x20, 0x20}; // Kühlmitteltemperatur im Bordmonitor anzuzeigen Schluß-Kette (_°C__)
+uint8_t BCcoolbeginn [7]  PROGMEM = {0x80, 0x0E, 0xE7, 0x24, 0x0E, 0x00, 0x20}; // Kühlmitteltemperatur im Bordmonitor anzeigen Anfangs-Kette
+uint8_t BCcoolend [5] PROGMEM = {0x20, 0xB0, 0x43, 0x20, 0x20}; // Kühlmitteltemperatur im Bordmonitor anzeigen Schluß-Kette (_°C__)
+// Heimleuchten Nebel und Bremslichter: 3F0FD00C000000001844000000E5FF00AA
+//Fahrertür auf
+uint8_t door_open_driver[] PROGMEM = {0x00, 0x05, 0xBF, 0x7A, 0x51};  // status Fahrertür ist auf (wenn Tür auf geht Heimleuchten einschalten)
+//00 05 BF 7A 51
+uint8_t ZV_lock[] PROGMEM = {0x3F, 0x05, 0x00, 0x0C, 0x00, 0x0B}; // Zentralverriegelung öffnen / schließen 3F05000C000B(3D)
+
+uint8_t Heimleuchten[] PROGMEM = 
+  {0x3F, 0x0F, 0xD0, 0x0C, 0x00, 0x00, 0x00, 0x00, 0x18, 0x44, 0x00, 0x00, 0x00, 0xE5, 0xFF, 0x00}; // Lichter für Heimleuchten: Bremslicht und Nebelleuchten: 3F0FD00C000000001844000000E5FF00
+
 #endif

@@ -1,9 +1,11 @@
 // include the IbusTrx library
 #include <IbusTrx.h>
+#include <Wire.h> 
+#include <BH1750.h>         //GY-302 mit Sensor BH1750
 #include "IbusCodes.h"      // hier sind alles Ibus-Codes und Variablen zur Configuration
 // create a new IbusTrx instance
 IbusTrx ibusTrx;
-
+BH1750 lightMeter;
 
 /*#####################################################
 ################ SETUP ################################
@@ -12,16 +14,18 @@ void setup(){
   pinMode(ledPin, OUTPUT);
   pinMode(senSta, INPUT_PULLUP);                          // pin 9 des TH3122 für Clear to send, mit einer diode von Teensy pin > TH3122 pin9
   
-  debugbegin(115200);                              // Teensy USB port, nicht nötig
+  debugbegin(115200);                                     // Teensy USB port, nicht nötig
   ibusTrx.begin(ibusPort);                                // Hardware Serial Nr. an IbusTrx übergeben
   
   ibusTrx.senStapin(senSta);                              // senSta Pin an IbusTrx Library übergeben
   attachInterrupt(digitalPinToInterrupt(senSta), ClearToSend, FALLING);   // Interrupt: Wenn senSta LOW wird, gehe zu Funktion ClearToSend
   delay (1000);
+
+  Wire.begin();                                           // I²C init für Lichtsensor BH1750 
+  lightMeter.begin(BH1750::CONTINUOUS_LOW_RES_MODE);      // initialise the light Sensor in continius low Resolution Mode 
   
   debugln(F("-- IBUS trx on Teensy 4.x --"));
 }
-
 
 
 /*#####################################################
@@ -61,29 +65,54 @@ void loop()
     unsigned int destination = message.destination();
     //unsigned int length = message.length();
 
-    // Funkschlüssel auf und zu // 00 04 BF 72 xx 
-    if ((source == M_GM5) && (destination == M_ALL) && (message.b(0) == 0x72))
-    {             
-      if (message.b(1) == 0x22) {
-        ibusTrx.writeTxt("einsteigen Cordula");
+     // 00 + BF - Funkschlüssel Auf/Zu, Türen Status
+    if ((source == M_GM5) && (destination == M_ALL))
+    { 
+      switch (message.b(0))                                 // erste Nachrichten Byte
+      {
+        case 0x72:                                          // Funkschlüssel auf und zu // 00 04 BF 72 xx
+          heiml =true;
+          switch (message.b(1))                             // zweite Nachrichten Byte
+          {
+            case 0x22:
+              ibusTrx.writeTxt("einsteigen Cordula");       // 00 04 BF 72 22 ck  
+              break;
+            case 0x26:  // Funkschlüssel Andre auf
+              ibusTrx.writeTxt("einsteigen Andre");
+              break;
+            case 0x12:
+              ibusTrx.writeTxt("Tschuess Cordula");
+              break;
+            case 0x16:  // FunkSchlüssel Andre zu
+              ibusTrx.writeTxt("Tschuess Andre");
+              break;
+            default:
+              break;
+          }
+          break;
+        
+        case 0x7A:                                // status Fahrertür ist auf (wenn Tür auf geht Heimleuchten einschalten)
+          switch (message.b(1))
+          {
+            case 0x51:                            // 00 05 BF 7A 51 status Fahrertür ist auf (wenn Tür auf geht Heimleuchten einschalten)
+              DvrdoorFr = true;
+              break;
+            
+            default:
+              break;
+          }
+        break;
+
+        default:
+          break;
       }
-      if (message.b(1) == 0x26) {                       // Funkschlüssel Andre auf
-        ibusTrx.writeTxt("einsteigen Andre");
-      }
-      if (message.b(1) == 0x12) {
-        ibusTrx.writeTxt("Tschuess Cordula");
-      }
-      if (message.b(1) == 0x16) {                       // FunkSchlüssel Andre zu
-        ibusTrx.writeTxt("Tschuess Andre");
-      }
-      // goto Heimleuchten: LDR auslesen und bei Dunkelheit Licht einschalten
     }
 
-    // Schlüssel im Schloß // 44 05 bf 74 xx xx
+    // Schlüssel im Schloß , Motor aus // 44 05 bf 74 xx xx
     if ((source == M_EWS) && (destination == M_ALL) && (message.b(0) == 0x74))
     {
       if (message.b(1) == 0x05)                                     // 44 05 bf 74 05 xx    Motor aus
-      {               
+      {              
         if (message.b(2) == 0x00)
         {
           ibusTrx.writeTxt("bis bald Cordula");                      // schlüssel stellung 1 -> 0, Corula
@@ -92,7 +121,6 @@ void loop()
         {
           ibusTrx.writeTxt("bis bald Andre");                        // schlüssel stellung 1 -> 0, Andre
         }
-      // goto Heimleuchten: LDR auslesen und bei Dunkelheit Licht einschalten
       }
       if (message.b(1) == 0x04)                                     // 44 05 bf 74 04 xx   Schlüssel wird ins Schloß gesteckt
       {               
@@ -196,7 +224,7 @@ void loop()
       {
         if ((source == M_LCM) && (destination == M_DIA) && (message.b(0) == 0xA0)){     // Antwort auf den Request des LCM-Status (D0 xx 3F A0 .....)
           debugln("LCM Antwort erkannt");
-          for (int i = 1; i < 17; ++i) 
+          for (uint8_t i = 1; i < 17; ++i) 
           {                                               
               LCMdimm[i-1] =message.b(i);         // lese 16 bytes ein = message.b(1-16)  (D0 xx 3F A0 |-> C1 C0 00 20 00 00 00 00 00 A0 00 00 88 14 84 E4 .....)
           }
@@ -230,7 +258,7 @@ void loop()
     }  
 
     // Geschwindigkeit, RPM, OutTemp, CoolantTemp
-    if ((source == M_IKEC) && (destination == M_ALL))     
+    if ((source == M_IKEC) && (destination == M_ALL))
       {
         switch (message.b(0)) 
         {
@@ -254,9 +282,35 @@ void loop()
               Coolant (coolant);                    // Gehe in die Funktion um Die Kühlmitteltemperatur im Bordmonitor anzuzeigen
             break;
 
-          default:
-            // Nichts tun für unbekannte Werte
-          break;
+          case 0x11:                                // Zündungs Nachricht
+            	switch (message.b(1))
+              {
+                case 0x00:
+                    switch (message.b(2))
+                    {
+                      case 0x2A:                      // Zündung Aus
+                          MotorOff = true;
+                        break;
+                    }
+                  break;
+                case 0x01:
+                    switch (message.b(2))
+                    {
+                      case 0x2B:                      // Zündung Pos1
+                          // noch nix
+                        break;
+                    }
+                  break;
+                case 0x03:
+                    switch (message.b(2))
+                    {
+                      case 0x29:                      // Zündung Pos2
+                          // noch nix
+                        break;
+                    }
+                  break;
+              } 
+            break;
         }
       }
 
@@ -326,6 +380,22 @@ void loop()
       IKEclear=false;                         // Fertig
     }*/
   }
+  
+  if (AutomVerriegeln)                        // Automatisches Verriegln bei Geschwindigkeit > 30Km/h und Entriegeln bei Motor aus
+  {
+    if (!ZVlocked && (speed > 30))            // wenn speed größer 30 km/h dann ZV verriegeln
+    {
+      ibusTrx.write(ZV_lock);
+      ZVlocked =true;
+    }
+    if (MotorOff && ZV_lock)                  // Moor aus / Zündung aus dann Entriegeln
+    {
+      ibusTrx.write(ZV_lock);
+      ZVlocked =false;
+    }
+  }
+
+  Daemmerung();     // gehe zu Dämmerung und Messe Helligkeit und ggf schalte Heimleuchten ein
 }  // ########################### Ende loop ##############################################
 
 
@@ -337,31 +407,74 @@ void loop()
 // Kühlmitteltemperatur im Bordmonitor anzuzeigen
 void Coolant (uint8_t coolant)
 {
-  uint8_t KTempDeci[3]; // Kühlmitteltemperatur zerlegt und in Hex abgelegt z.B. 128 => 31 32 38
+  uint8_t coolantTemp[3];       // Kühlmitteltemperatur zerlegt und in Hex abgelegt z.B. 128 => 31 32 38
   uint8_t zerlegen = coolant;   // Hilfs Variable zum zerlegen des Decimalwertes
   // zerlegen von coolant
-  for (int i = 2; i >= 0; --i) 
+  for (uint8_t i = 2; i >= 0; --i) 
   {
-    KTempDeci[i] = (zerlegen % 10) + 0x30; // Die letzte Ziffer der Zahl +30 (in Hex 0x1E) und im Array speichern
-    zerlegen /= 10;                        // Eine Ziffer entfernen
+    coolantTemp[i] = (zerlegen % 10) + 0x30;  // Die letzte Ziffer der Zahl +30 (in Hex 0x1E) und im Array speichern
+    zerlegen /= 10;                           // Eine Ziffer entfernen
   }
   // wenn coolant nur zwei Ziffern hat füge ein Leerzeichen in HEX voran
   if (coolant < 100) 
   {
-    KTempDeci[0] = 0x20;    
+    coolantTemp[0] = 0x20;    
   }
   /*  for (int i = 0; i < 3; i++) 
   {
     debug(" ");
-    debug(KTempDeci[i]);
+    debug(coolantTemp[i]);
   }*/
-  // Zeichenkette zusammen bauen: 80 0F E7 24 0E 00 20  + KTempDeci + 20 B0 43 20 20 + cksum
-  memcpy(BCcool, BCcoolbeginn, sizeof(BCcoolbeginn));                                                 // BlinkerLi in LCMBlinker speichern
-  memcpy(BCcool + sizeof(BCcoolbeginn), KTempDeci, sizeof(KTempDeci));                                 // hinzufügen von LCMdimm
-  memcpy(BCcool + sizeof(BCcoolbeginn) + sizeof(KTempDeci), BCcoolend, sizeof(BCcoolend));   // hinzufügen von FF 00
-  BCcool[1] = sizeof(BCcool)-1;  
+  // Zeichenkette zusammen bauen: 80 0F E7 24 0E 00 20  + coolantTemp + 20 B0 43 20 20 + cksum
+  memcpy(BCcool, BCcoolbeginn, sizeof(BCcoolbeginn));                                         // BCcoolbeginn in BCcool speichern
+  memcpy(BCcool + sizeof(BCcoolbeginn), coolantTemp, sizeof(coolantTemp));                    // hinzufügen von coolantTemp
+  memcpy(BCcool + sizeof(BCcoolbeginn) + sizeof(coolantTemp), BCcoolend, sizeof(BCcoolend));  // hinzufügen von {0x20, 0xB0, 0x43, 0x20, 0x20}
+  BCcool[1] = sizeof(BCcool)-1;                                                               // länge der gesammten Zeichenkette berechnen und eintragen
   // sende an den Bordmonitor im Bereiche BC anstelle von Timer 1 oder 2
   ibusTrx.write (BCcool);
+}
+
+// Lichtsensor BH1750 und Heimleuchten
+void Daemmerung() 
+{
+  if ((millis()-msTimer) >= 800)     // 500ms Zeit abgelaufen?
+    {      
+      msTimer = millis();
+      // Lese den Wert vom LDR
+      //int ldrValue = analogRead(LDR_PIN);
+
+      float ldrValue = lightMeter.readLightLevel();
+      
+      // Berechne den Durchschnitt
+      sum -= ldrValues[ldrindex];  // Subtrahiere den alten Wert
+      ldrValues[ldrindex] = ldrValue;  // Speichere den neuen Wert
+      sum += ldrValue;  // Addiere den neuen Wert
+      ldrindex = (ldrindex + 1) % NUM_READINGS;  // Aktualisiere den ldrindex
+
+      average = sum / NUM_READINGS;  // Berechne den Durchschnitt
+
+      // Entscheide anhand der Hysterese, ob das dunkel flag gesetzt wird
+      if (average > UPPER_THRESHOLD && dunkel) {
+        dunkel = false;
+      } else if (average < LOWER_THRESHOLD && !dunkel) {
+        dunkel = true;
+      }
+
+      // Ausgabe des Durchschnitts und des dunkel-flags
+      debug("Average: ");
+      debug(average);
+      debug(" - dunkel: ");
+      debugln(dunkel);
+      //dunkel = true;  // nur zum testen wenn kein LDR angeschlossen ist
+    }
+  if ((dunkel && MotorOff && DvrdoorFr) || (dunkel && heiml))
+  {
+    debug("Heimleuchten gesendet!");
+    ibusTrx.write (Heimleuchten);
+    MotorOff = false;
+    DvrdoorFr = false;
+    heiml =false;
+  }  
 }
 
 // Wenn Interrup dann sende die iBus Codes

@@ -1,8 +1,18 @@
 BMW Ibus for Teensy 4.1
 Used and modified Library is a fork from https://github.com/just-oblivious/arduino-ibustrx
 
+Ibus Aufbau:
+example IBUS message:
+50 04 68 32 11 1F (volume up button pressed on the steering wheel)
+|  |  |  |  |  | 
+|  |  |  |  |  checksum (xorsum of all previous bytes)
+|  |  |  |  one or more data fields
+|  |  |  message type/command type
+|  |  destination address
+|  length of message (including destination address and checksum)
+source address 
 
-Teensy 4.1
+Teensy 4 / 4.1
 
 ARM Cortex-M7 at 600 MHz
 1024K RAM (512K is tightly coupled)
@@ -35,16 +45,20 @@ LED Buildin = 13
 für evtl CAN =  Can1     = RxPin 23 und TxPin 22
 für Ibus =      Serial2  = RxPIN 7 und TxPin 8 , CleartoSent = Pin 5
 für GSM/GPS =   Serial1  = RxPin 0 , TxPin 1 , Powerbutton 2 , Status 3
+Licht Sensor BH1750 über I²C = SCL pin19, SDA pin 18, Vcc=3.3V
 
 
-Ibus Aufbau:
-example IBUS message:
-50 04 68 32 11 1F (volume up button pressed on the steering wheel)
-|  |  |  |  |  | 
-|  |  |  |  |  checksum (xorsum of all previous bytes)
-|  |  |  |  one or more data fields
-|  |  |  message type/command type
-|  |  destination address
-|  length of message (including destination address and checksum)
-source address 
+Was bis jezt implementiert ist:
+-Tipplinken mit IKE-Dimmer-Anpassung
+-Schlüsselerkennung und Text-Begrüßung im IKE
+-Heimleuchten mit Lichtsensor BH1750
+-ZV-Verrieglung bei Speed > 30 und Entriegelung bei Motor aus
+-Geschwindigkeit und Außentemperatur
+-Kühlmitteltemperatur wird im Boadcomputer angezeigt anstatt Timer 2
 
+
+
+ToDo:
+Standheizung via ibus Ein/Aus
+Alle Bordcomputerdaten auslesen - noch keinen ibus code gefunden!
+Tankanzeige auslesen - noch keinen ibus code gefunden!
