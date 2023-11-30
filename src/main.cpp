@@ -13,6 +13,8 @@ BH1750 lightMeter;
 void setup(){
   pinMode(ledPin, OUTPUT);
   pinMode(senSta, INPUT_PULLUP);                          // pin 9 des TH3122 für Clear to send, mit einer diode von Teensy pin > TH3122 pin9
+  pinMode(TH_EN,OUTPUT);
+  pinMode(TH_RESET, INPUT);
   
   debugbegin(115200);                                     // Teensy USB port, nicht nötig
   ibusTrx.begin(ibusPort);                                // Hardware Serial Nr. an IbusTrx übergeben
@@ -357,6 +359,12 @@ void loop()
     // etc.
 
 
+  }else
+  {
+    // Starte timer um TH3122 in den Schalf zu schicken
+    //th3122_EN = low
+    //digitalWrite (TH_EN, LOW);
+    // elapsedMillis
   } // ############################ if (messageWaiting) ENDE #################################
   
 
@@ -395,7 +403,7 @@ void loop()
     }
   }
 
-  Daemmerung();     // gehe zu Dämmerung und Messe Helligkeit und ggf schalte Heimleuchten ein
+  Daemmerung();     // gehe zu Dämmerung und messe Helligkeit und ggf schalte Heimleuchten ein
 }  // ########################### Ende loop ##############################################
 
 
@@ -461,10 +469,10 @@ void Daemmerung()
       }
 
       // Ausgabe des Durchschnitts und des dunkel-flags
-      debug("Average: ");
-      debug(average);
-      debug(" - dunkel: ");
-      debugln(dunkel);
+      //debug("Average: ");
+      //debug(average);
+      //debug(" - dunkel: ");
+      //debugln(dunkel);
       //dunkel = true;  // nur zum testen wenn kein LDR angeschlossen ist
     }
   if ((dunkel && MotorOff && DvrdoorFr) || (dunkel && heiml))

@@ -26,7 +26,9 @@
 //#define debugSerial Serial        // USB Port on Teensy
 #define ibusPort Serial2          // Serial für Ibus = Serial2 = RxPIN 7 und TxPin 8 , CleartoSent = Pin 5
 const byte ledPin = 13;           // buildin LED
-const byte senSta = 5;            // sen/Sta output from Melexis TH3122 pin 9.
+const byte senSta = 5;            // sen/Sta output from Melexis TH3122 PIN9.
+const byte TH_EN = 6;             // EN input from Melexis TH3122 PIN2.
+const byte TH_RESET = 4;          // Reset output from Melexis TH3122 PIN14.
 
 bool IKEclear = false;            // flag um das IKE zu löschen
 long msTimer = 0;                 // used for cycle timing

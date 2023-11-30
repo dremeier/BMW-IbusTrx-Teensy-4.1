@@ -12,8 +12,7 @@ example IBUS message:
 |  length of message (including destination address and checksum)
 source address 
 
-Teensy 4 / 4.1
-
+Teensy 4 / 4.1:
 ARM Cortex-M7 at 600 MHz
 1024K RAM (512K is tightly coupled)
 8192K Flash (64K reserved for recovery & EEPROM emulation)
@@ -44,7 +43,7 @@ Peripheral cross triggering
 LED Buildin = 13
 für evtl CAN =  Can1     = RxPin 23 und TxPin 22
 für Ibus =      Serial2  = RxPIN 7 und TxPin 8 , CleartoSent = Pin 5
-für GSM/GPS =   Serial1  = RxPin 0 , TxPin 1 , Powerbutton 2 , Status 3
+für GSM/GPS =   Serial1  = RxPin 0 , TxPin 1 , Powerbutton 3 , DTR 2
 Licht Sensor BH1750 über I²C = SCL pin19, SDA pin 18, Vcc=3.3V
 
 
