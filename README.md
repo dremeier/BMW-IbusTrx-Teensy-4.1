@@ -4,7 +4,9 @@ Used and modified Library is a fork from https://github.com/just-oblivious/ardui
 ## Ibus Aufbau:
 ### example IBUS message:
 50 04 68 32 11 1F (volume up button pressed on the steering wheel)
+
 |  |  |  |  |  | 
+
 |  |  |  |  |  checksum (xorsum of all previous bytes)
 |  |  |  |  one or more data fields
 |  |  |  message type/command type
