@@ -62,6 +62,5 @@ Peripheral cross triggering
 - Alle Bordcomputerdaten auslesen - noch keinen ibus code gefunden!
 - Tankanzeige auslesen - noch keinen ibus code gefunden!
 
-
-## PCB
-![Erstes PCB für weitere Experimente](/Pics/TOP_Side_02.png )
+## Erstes PCB Layout zum weiteren austesten:
+![Alt text](/Pics/TOP_Side_02.png )
