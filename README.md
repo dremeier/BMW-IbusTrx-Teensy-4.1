@@ -40,28 +40,28 @@ Pixel Processing Pipeline
 Peripheral cross triggering
 
 ## PINOUT
-LED Buildin = 13
-für evtl CAN =  Can1     = RxPin 23 und TxPin 22
-für Ibus =      Serial2  = RxPIN 7 und TxPin 8 , CleartoSent = Pin 5
-für GSM/GPS =   Serial1  = RxPin 0 , TxPin 1 , Powerbutton 3 , DTR 2
-Licht Sensor BH1750 über I²C = SCL pin19, SDA pin 18, Vcc=3.3V
+- LED Buildin = 13
+- für evtl CAN =  Can1     = RxPin 23 und TxPin 22
+- für Ibus =      Serial2  = RxPIN 7 und TxPin 8 , CleartoSent = Pin 5
+- für GSM/GPS =   Serial1  = RxPin 0 , TxPin 1 , Powerbutton 3 , DTR 2
+- Licht Sensor BH1750 über I²C = SCL pin19, SDA pin 18, Vcc=3.3V
 
 
 ## Was bis jezt implementiert ist:
--Tipplinken mit IKE-Dimmer-Anpassung
--Schlüsselerkennung und Text-Begrüßung im IKE
--Heimleuchten mit Lichtsensor BH1750
--ZV-Verrieglung bei Speed > 30 und Entriegelung bei Motor aus
--Geschwindigkeit und Außentemperatur
--Kühlmitteltemperatur wird im Boadcomputer angezeigt anstatt Timer 2
+- Tipplinken mit IKE-Dimmer-Anpassung
+- Schlüsselerkennung und Text-Begrüßung im IKE
+- Heimleuchten mit Lichtsensor BH1750
+- ZV-Verrieglung bei Speed > 30 und Entriegelung bei Motor aus
+- Geschwindigkeit und Außentemperatur
+- Kühlmitteltemperatur wird im Boadcomputer angezeigt anstatt Timer 2
 
 
 
 ## ToDo:
-Standheizung via ibus Ein/Aus
-Alle Bordcomputerdaten auslesen - noch keinen ibus code gefunden!
-Tankanzeige auslesen - noch keinen ibus code gefunden!
+- Standheizung via ibus Ein/Aus
+- Alle Bordcomputerdaten auslesen - noch keinen ibus code gefunden!
+- Tankanzeige auslesen - noch keinen ibus code gefunden!
 
 
-![Screenshot Erstes PCB Layout zum weiteren austesten:]
-![Alt text](/main/Pics/TOP_Side_02.png )
+![Erstes PCB Layout zum weiteren austesten:]
+![Alt text](/Pics/TOP_Side_02.png )
