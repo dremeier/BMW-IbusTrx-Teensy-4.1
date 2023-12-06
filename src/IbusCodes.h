@@ -32,9 +32,12 @@ const byte TH_RESET = 4;          // Reset output from Melexis TH3122 PIN14.
 
 bool IKEclear = false;            // flag um das IKE zu löschen
 long msTimer = 0;                 // used for cycle timing
+long msSleep = 0;                 // zeit für System-Schlaf
+bool sysSleep = 1;                // flag für SleepTimer
+unsigned long SleepTime = 60000; // Zeit bis zum schlafen legen des TH3122 (60.000 = 1 Minute)
 unsigned int t_clearIKE = 10000;  // zeit in milis bis der Text im IKE gelöscht wird
-bool Tippblinken = true;              // flag zum ein und aus schalten der Tipp-Blinker Funktion
-bool AutomVerriegeln = true;             // Automatisches Verriegln bei Geschwindigkeit > 30Km/h und Entriegeln bei Motor aus
+bool Tippblinken = true;          // flag zum ein und aus schalten der Tipp-Blinker Funktion
+bool AutomVerriegeln = true;      // Automatisches Verriegln bei Geschwindigkeit > 30Km/h und Entriegeln bei Motor aus
 bool ZVlocked =false;             // flag für geschwindigkeit war größer 30 usw.
 uint8_t BlinkcountLi = 0;         // flag um die Anzahl der Blinker zu zählen
 uint8_t BlinkcountRe = 0;

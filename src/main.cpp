@@ -14,7 +14,7 @@ void setup(){
   pinMode(ledPin, OUTPUT);
   pinMode(senSta, INPUT_PULLUP);                          // pin 9 des TH3122 für Clear to send, mit einer diode von Teensy pin > TH3122 pin9
   pinMode(TH_EN,OUTPUT);
-  pinMode(TH_RESET, INPUT);
+  pinMode(TH_RESET, INPUT_PULLUP);
   
   debugbegin(115200);                                     // Teensy USB port, nicht nötig
   ibusTrx.begin(ibusPort);                                // Hardware Serial Nr. an IbusTrx übergeben
@@ -354,22 +354,26 @@ void loop()
           digitalWrite(13, LOW);
         }
       }
-      // etc.
     }
-    // etc.
+    
+    // flags und timer für TH-Sleep zurücksetzen:
+    if (sysSleep)
+    {
+      debugln("TH_EN high");
+      digitalWrite(TH_EN, HIGH);      // TH3122 enable pin high
+      sysSleep = false;               // SystemSleep =false -> System ist aktiv
+      debugln("SystemTimer reset und System aktiv");
+    }
+    msSleep =millis();              // Timer reset
 
-
-  }else
+  // nach Inaktivität TH abschalten
+  }else if ((millis()-msSleep) >= (SleepTime) && (!sysSleep))   // 600.000 ms = 10 Minuten
   {
-    // Starte timer um TH3122 in den Schalf zu schicken
-    //th3122_EN = low
-    //digitalWrite (TH_EN, LOW);
-    // elapsedMillis
-  } // ############################ if (messageWaiting) ENDE #################################
-  
-
-
-
+    digitalWrite(TH_EN, LOW);         // TH3122 enable pin low, TH wird disabled und TH-LDO abgeschaltet
+    sysSleep = true;                  // SystemSleep =true -> System schläft
+    debugln("TH_EN low und System schläft");
+  }    
+  // ############################ if (messageWaiting) ENDE #################################
 
 
   // ############################# weiter im Loop ##############
@@ -391,7 +395,7 @@ void loop()
   
   if (AutomVerriegeln)                        // Automatisches Verriegln bei Geschwindigkeit > 30Km/h und Entriegeln bei Motor aus
   {
-    if (!ZVlocked && (speed > 30))            // wenn speed größer 30 km/h dann ZV verriegeln
+    if (!ZVlocked && (speed > 20))            // wenn speed größer 20 km/h dann ZV verriegeln
     {
       ibusTrx.write(ZV_lock);
       ZVlocked =true;
@@ -404,6 +408,7 @@ void loop()
   }
 
   Daemmerung();     // gehe zu Dämmerung und messe Helligkeit und ggf schalte Heimleuchten ein
+
 }  // ########################### Ende loop ##############################################
 
 
@@ -438,7 +443,7 @@ void Coolant (uint8_t coolant)
   memcpy(BCcool + sizeof(BCcoolbeginn), coolantTemp, sizeof(coolantTemp));                    // hinzufügen von coolantTemp
   memcpy(BCcool + sizeof(BCcoolbeginn) + sizeof(coolantTemp), BCcoolend, sizeof(BCcoolend));  // hinzufügen von {0x20, 0xB0, 0x43, 0x20, 0x20}
   BCcool[1] = sizeof(BCcool)-1;                                                               // länge der gesammten Zeichenkette berechnen und eintragen
-  // sende an den Bordmonitor im Bereiche BC anstelle von Timer 1 oder 2
+  // sende an den Bordmonitor im BC-Bereich anstelle von Timer 1 oder 2
   ibusTrx.write (BCcool);
 }
 
