@@ -3,19 +3,26 @@
 #include <Wire.h> 
 #include <BH1750.h>         //GY-302 mit Sensor BH1750
 #include "IbusCodes.h"      // hier sind alles Ibus-Codes und Variablen zur Configuration
+#include <Snooze.h>
 // create a new IbusTrx instance
 IbusTrx ibusTrx;
 BH1750 lightMeter;
+
+SnoozeUSBSerial usb;
+SnoozeDigital digital;                  // this is the pin's wakeup driver
+SnoozeBlock config_sleep(usb, digital); // install driver into SnoozeBlock
 
 /*#####################################################
 ################ SETUP ################################
 #######################################################*/
 void setup(){
   pinMode(ledPin, OUTPUT);
-  pinMode(senSta, INPUT_PULLUP);                          // pin 9 des TH3122 für Clear to send, mit einer diode von Teensy pin > TH3122 pin9
   pinMode(TH_EN,OUTPUT);
-  pinMode(TH_RESET, INPUT_PULLUP);
-  
+  pinMode(senSta, INPUT_PULLUP);                          // pin 5 des TH3122 für Clear to send, mit einer diode von Teensy pin > TH3122 pin5
+  pinMode(TH_RESET, INPUT_PULLUP);                        // Reset pin des TH3122, dieser ist high wenn TH arbeitet, mit einer diode von Teensy pin > TH3122 pin4
+  //wakeup Interrupt: pin, mode, type         
+  digital.pinMode(TH_RESET, INPUT_PULLUP, RISING);        // SnoozeBlock, wakeup Pin. Wenn TH_RESET high wird, wird der Teensy aufgeweckt
+
   debugbegin(115200);                                     // Teensy USB port, nicht nötig
   ibusTrx.begin(ibusPort);                                // Hardware Serial Nr. an IbusTrx übergeben
 
@@ -378,12 +385,14 @@ void loop()
     }
     msSleep =millis();              // Sleep Timer reset
 
-  // nach Inaktivität TH abschalten
+  // nach Inaktivität TH und Teensy in Sleep mode
   }else if ((millis()-msSleep) >= (SleepTime) && (!sysSleep))   // 600.000 ms = 10 Minuten
   {
+    debugln("TH_EN low und System schlaeft");
     digitalWrite(TH_EN, LOW);         // TH3122 enable pin low, TH wird disabled und TH-LDO abgeschaltet
     sysSleep = true;                  // SystemSleep =true -> System schläft
-    debugln("TH_EN low und System schläft");
+    delay(50);
+    Snooze.deepSleep( config_sleep ); // deepSleep ~20mA, sleep ~30mA, in hibernate IBUStrx does not woke up
   }    
   // ############################ if (messageWaiting) ENDE #################################
 
