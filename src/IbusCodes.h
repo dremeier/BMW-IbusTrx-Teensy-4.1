@@ -33,7 +33,8 @@ const byte TH_RESET = 4;          // Reset output from Melexis TH3122 PIN14.
 bool IKEclear = false;            // flag um das IKE zu löschen
 long msTimer = 0;                 // used for cycle timing
 long msSleep = 0;                 // zeit für System-Schlaf
-bool sysSleep = 1;                // flag für SleepTimer
+bool sysSleep = 0;                // flag für SleepTimer
+bool th_reset = 0; //test
 unsigned long SleepTime = 60000; // Zeit bis zum schlafen legen des TH3122 (60.000 = 1 Minute)
 unsigned int t_clearIKE = 10000;  // zeit in milis bis der Text im IKE gelöscht wird
 bool Tippblinken = true;          // flag zum ein und aus schalten der Tipp-Blinker Funktion

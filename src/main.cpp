@@ -18,7 +18,7 @@ void setup(){
   
   debugbegin(115200);                                     // Teensy USB port, nicht nötig
   ibusTrx.begin(ibusPort);                                // Hardware Serial Nr. an IbusTrx übergeben
-  
+
   ibusTrx.senStapin(senSta);                              // senSta Pin an IbusTrx Library übergeben
   attachInterrupt(digitalPinToInterrupt(senSta), ClearToSend, FALLING);   // Interrupt: Wenn senSta LOW wird, gehe zu Funktion ClearToSend
   delay (1000);
@@ -26,6 +26,18 @@ void setup(){
   Wire.begin();                                           // I²C init für Lichtsensor BH1750 
   lightMeter.begin(BH1750::CONTINUOUS_LOW_RES_MODE);      // initialise the light Sensor in continius low Resolution Mode 
   
+  // TH3122  Reset-Status-Abfrage
+    //if (digitalRead(TH_RESET) == LOW)
+    //{
+      //debugln("TH schläft, wecke ihn auf!");
+      //th_reset = true;
+    //}  
+
+  // TH3122 einschalten und flags setzen
+  digitalWrite(TH_EN, HIGH);      // TH3122 enable pin high
+  sysSleep = false;               // SystemSleep =false -> System ist aktiv
+  msSleep =millis();              // Sleep Timer reset
+
   debugln(F("-- IBUS trx on Teensy 4.x --"));
 }
 
@@ -356,15 +368,15 @@ void loop()
       }
     }
     
-    // flags und timer für TH-Sleep zurücksetzen:
+    // flags und Timer für TH-Sleep zurücksetzen:
     if (sysSleep)
     {
-      debugln("TH_EN high");
+      //debugln("TH_EN high");
       digitalWrite(TH_EN, HIGH);      // TH3122 enable pin high
       sysSleep = false;               // SystemSleep =false -> System ist aktiv
       debugln("SystemTimer reset und System aktiv");
     }
-    msSleep =millis();              // Timer reset
+    msSleep =millis();              // Sleep Timer reset
 
   // nach Inaktivität TH abschalten
   }else if ((millis()-msSleep) >= (SleepTime) && (!sysSleep))   // 600.000 ms = 10 Minuten
@@ -409,6 +421,19 @@ void loop()
 
   Daemmerung();     // gehe zu Dämmerung und messe Helligkeit und ggf schalte Heimleuchten ein
 
+  /* Debug abfrage status TH Reset Pin
+  if ((!th_reset) && ( digitalReadFast(TH_RESET)))
+  {
+    debugln("TH Reset high");
+    th_reset = true;
+  }
+  if ((th_reset) && ( !digitalReadFast(TH_RESET)))
+  {
+    debugln("TH Reset low");
+    th_reset = false;
+  }
+  */
+  
 }  // ########################### Ende loop ##############################################
 
 
