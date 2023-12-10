@@ -1,0 +1,12 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"name": "Teensy Snooze",
+			"path": "../Teensy Snooze"
+		}
+	],
+	"settings": {}
+}

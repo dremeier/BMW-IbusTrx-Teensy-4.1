@@ -45,6 +45,9 @@ source address
 - LED Buildin = 13
 - für evtl CAN =  Can1     = RxPin 23 und TxPin 22
 - für Ibus =      Serial2  = RxPIN 7 und TxPin 8 , CleartoSent = Pin 5
+- TH_senSta = 5
+- TH_Reset = 4
+- TH_Enable = 6 
 - für GSM/GPS =   Serial1  = RxPin 0 , TxPin 1 , Powerbutton 3 , DTR 2
 - Licht Sensor BH1750 über I²C = SCL pin19, SDA pin 18, Vcc=3.3V
 
@@ -56,13 +59,19 @@ source address
 - ZV-Verrieglung bei Speed > 30 und Entriegelung bei Motor aus
 - Geschwindigkeit und Außentemperatur
 - Kühlmitteltemperatur wird im Boadcomputer angezeigt anstatt Timer 2
+### Sleep Mode
+- nach 10min wird der TH3122 und der Teensy schlafen gelegt. Strom sinkt von 120mA auf 20mA
 
 
 
 ## ToDo:
 - Standheizung via ibus Ein/Aus
 - Alle Bordcomputerdaten auslesen - noch keinen ibus code gefunden!
-- Tankanzeige auslesen - noch keinen ibus code gefunden!
+- Tankanzeige auslesen - ibus code gefunden, Danke Mirko!
+- RTC sync with GPS: https://github.com/PaulStoffregen/Time/blob/master/examples/TimeGPS/TimeGPS.ino
+- GSM/GPS
+- Bluetooth für Audio über iPhone
+
 
 ## Erstes PCB Layout zum weiteren austesten:
 ![Alt text](/Pics/TOP_Side_02.png )

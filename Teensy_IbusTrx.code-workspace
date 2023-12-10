@@ -1,0 +1,12 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"name": "teensy_Bluetooth_BT1026x",
+			"path": "../teensy_Bluetooth_BT1026x"
+		}
+	],
+	"settings": {}
+}

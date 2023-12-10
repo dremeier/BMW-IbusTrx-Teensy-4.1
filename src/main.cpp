@@ -129,19 +129,20 @@ void loop()
       }
     }
 
-    // Schlüssel im Schloß , Motor aus // 44 05 bf 74 xx xx
+    // Schlüssel im Schloß , Motor aus, Tankinhalt // 44 05 bf 74 xx xx
     if ((source == M_EWS) && (destination == M_ALL) && (message.b(0) == 0x74))
     {
       if (message.b(1) == 0x05)                                     // 44 05 bf 74 05 xx    Motor aus
       {              
         if (message.b(2) == 0x00)
         {
-          ibusTrx.writeTxt("bis bald Cordula");                      // schlüssel stellung 1 -> 0, Corula
+          ibusTrx.writeTxt("bis bald Cordula");                     // schlüssel stellung 1 -> 0, Corula
         }
         if (message.b(2) == 0x05) 
         {
-          ibusTrx.writeTxt("bis bald Andre");                        // schlüssel stellung 1 -> 0, Andre
+          ibusTrx.writeTxt("bis bald Andre");                       // schlüssel stellung 1 -> 0, Andre
         }
+        ibusTrx.write(Tankinhalt);                                  // Tankinhalt Abfragen (Antwort noch ermitteln!)
       }
       if (message.b(1) == 0x04)                                     // 44 05 bf 74 04 xx   Schlüssel wird ins Schloß gesteckt
       {               
