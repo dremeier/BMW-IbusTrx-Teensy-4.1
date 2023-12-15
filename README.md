@@ -65,13 +65,16 @@ source address
 
 
 ## ToDo:
-- Standheizung via ibus Ein/Aus
+- Standheizung via ibus Ein/Aus ___erledigt___
 - Alle Bordcomputerdaten auslesen - noch keinen ibus code gefunden!
-- Tankanzeige auslesen - ibus code gefunden, Danke Mirko!
+- Tankanzeige auslesen - ibus code gefunden, Danke Mirko! ___fast erledigt___
 - RTC sync with GPS: https://github.com/PaulStoffregen/Time/blob/master/examples/TimeGPS/TimeGPS.ino
 - GSM/GPS
-- Bluetooth für Audio über iPhone
+- Bluetooth für Audio über iPhone ___erledigt___
 
 
 ## Erstes PCB Layout zum weiteren austesten:
 ![Alt text](/Pics/TOP_Side_02.png )
+
+## vorerst final Version mit GSM/GNSS, Bluetooth mit SPDIF und Analog out
+![Alt text](https://github.com/dremeier/BMW-IbusTrx-Teensy-4.1/blob/main/Pics/Screenshot%202023-12-14%20091955.png)
